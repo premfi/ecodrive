@@ -1,8 +1,11 @@
-pub type PrefFloat = f64; // preferred floating point type
-
-use uom::si::f64::{Mass, Area, Acceleration, MassDensity, Length, Velocity, Ratio};
+use uom::si::f64::{Mass, Area, Acceleration, MassDensity, Length, Velocity, Ratio, AvailableEnergy};
 use uom::typenum::{N1, Z0};
+use uom::si::acceleration::meter_per_second_squared;
 use std::marker::PhantomData;
+
+pub type PrefFloat = f64; // preferred floating point type
+pub type PerMeter = uom::si::Quantity<uom::si::ISQ<N1, Z0, Z0, Z0, Z0, Z0, Z0>,
+                                            uom::si::SI<PrefFloat>, PrefFloat>; // [1/m]
 
 pub const GRAVITY_OF_EARTH: Acceleration = Acceleration {dimension:PhantomData, units: PhantomData, value: 9.81}; // gravitational acceleration [m/s^2]
 // pub const C_R: PrefFloat = 0.01; // rolling resistance coefficient
@@ -71,7 +74,16 @@ pub struct Route {
 
 // fn e_kin(s, )
 
-// fn energy_used(s, mom)
+pub fn energy_used(s: Length, mom: Acceleration /* [N/kg] */, rec_eff: PrefFloat) -> AvailableEnergy /* [J/kg] */ {
+    /* Specific used energy when applying moment `mom` on length `s` */
+    if mom >= Acceleration::new::<meter_per_second_squared>(0.0) {
+        s * mom
+    } else {
+        s * mom * rec_eff
+    }
+
+
+}
 
 // fn retrieve_A(s, )
 
