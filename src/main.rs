@@ -2,8 +2,15 @@ mod ecodrive;
 use ecodrive::*;
 
 use uom::si::f64::{Mass, Area, Length, Ratio, Velocity, Acceleration, AvailableEnergy};
-use uom::si::{mass::kilogram, area::square_meter, length::meter, ratio::percent, velocity::{meter_per_second, kilometer_per_hour}, acceleration::meter_per_second_squared, available_energy::joule_per_kilogram};
+use uom::si::{mass::kilogram,
+            area::square_meter, 
+            length::meter, 
+            ratio::percent, 
+            velocity::{meter_per_second, kilometer_per_hour}, 
+            acceleration::meter_per_second_squared, 
+            available_energy::joule_per_kilogram};
 use uom;
+use float_cmp::approx_eq;
 
 
 fn main() {
@@ -30,9 +37,6 @@ fn main() {
                         Velocity::new::<kilometer_per_hour>(130.0),
                         Velocity::new::<kilometer_per_hour>(130.0)];
     
-    println!("{:?}", max_speeds[0]);
-    println!("{:?}", max_speeds[1]);
-    
     let route0 = Route {lengths, slopes, max_speeds};
 
     println!("Hello, world!");
@@ -41,11 +45,16 @@ fn main() {
     let g = uom::si::acceleration::meter_per_second_squared{};
     let test_mom = Acceleration::new::<meter_per_second_squared>(-2.8);
     let test_s = Length::new::<meter>(50.0);
+    let test_a_param = Acceleration::new::<meter_per_second_squared>(-0.0);
     let test_ekin_0 = AvailableEnergy::new::<joule_per_kilogram>(0.0);
     let test_ekin_s = AvailableEnergy::new::<joule_per_kilogram>(75.0);
+    println!("delta t = {:?}\n", delta_t(test_s, test_a_param, car1.get_c_param(), test_ekin_0));
+
     println!("energy_used = {:?}", energy_used(test_s, test_mom, car1.rec_eff));
     println!("c={:?}", car1.get_c_param());
     println!("{:?}", g);
-    println!("2^4={}", (std::f64::consts::E).powf(3.0));
-    println!("retrieved A = {:?}", retrieve_a_param(test_s, test_ekin_0, test_ekin_s, car1.get_c_param()));
+    println!("sqrt {}", PrefFloat::sqrt(2.0));
+    let test_a_retrieved = retrieve_a_param(test_s, test_ekin_0, test_ekin_s, car1.get_c_param());
+    println!("retrieved A = {:?}", test_a_retrieved);
+    println!("approx eq? {}", approx_eq!(f64, 1.0_f64, 1.000000000000001_f64, ulps = 2));
 }
