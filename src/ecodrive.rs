@@ -4,7 +4,7 @@ use uom::si::acceleration::meter_per_second_squared;
 use std::marker::PhantomData;
 
 pub type PrefFloat = f64; // preferred floating point type
-pub type PerMeter = uom::si::Quantity<uom::si::ISQ<N1, Z0, Z0, Z0, Z0, Z0, Z0>,
+pub type PerLength = uom::si::Quantity<uom::si::ISQ<N1, Z0, Z0, Z0, Z0, Z0, Z0>,
                                             uom::si::SI<PrefFloat>, PrefFloat>; // [1/m]
 
 pub const GRAVITY_OF_EARTH: Acceleration = Acceleration {dimension:PhantomData, units: PhantomData, value: 9.81}; // gravitational acceleration [m/s^2]
@@ -45,7 +45,7 @@ impl Vehicle {
                     rec_eff,
                     c_param: None};
 
-        // calculate and set c_param from given values
+        // calculate and set C parameter from given values
         vhl.c_param = Some(vhl.calc_c_param());
 
         vhl
@@ -53,13 +53,13 @@ impl Vehicle {
 
     fn calc_c_param(&self) -> uom::si::Quantity<uom::si::ISQ<N1, Z0, Z0, Z0, Z0, Z0, Z0>,
                                             uom::si::SI<PrefFloat>, PrefFloat> /* [1/m] */ {
-        /* calculate c_param from given values */
+        /* calculate C parameter from given values */
         RHO_AIR * self.c_w * self.frontal_area / self.mass
     }
 
     pub fn get_c_param(&self) -> uom::si::Quantity<uom::si::ISQ<N1, Z0, Z0, Z0, Z0, Z0, Z0>,
                                         uom::si::SI<PrefFloat>, PrefFloat> /* [1/m] */ {
-        /* get value from private c_param field */
+        /* get C parameter */
         self.c_param.expect("c_param not set! Should have been calculated automatically.")
     }
 }
@@ -85,7 +85,11 @@ pub fn energy_used(s: Length, mom: Acceleration /* [N/kg] */, rec_eff: PrefFloat
 
 }
 
-// fn retrieve_A(s, )
+fn retrieve_a_param(s: Length, ekin_0: AvailableEnergy, ekin_s: AvailableEnergy, c_param: PerLength) -> Acceleration /* [N/kg] */ {
+    /* Calculate A parameter necessary to reach `ekin_s` after length `s` when starting with `ekin_0` */
+    let a_param = c_param * (ekin_s - ekin_0 * PrefFloat::pow(PrefFloat::E, (-c_param * s))) / (1.0 - PrefFloat::pow(PrefFloat::E, (-c_param * s)))
+    a_param
+}
 
 // fn delta_t(s, A, C, e_kin0)
 
