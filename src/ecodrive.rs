@@ -40,8 +40,9 @@ impl Vehicle {
                 rho_rot: PrefFloat,         // factor for equivalent mass of rotating parts
                 c_w: PrefFloat,             // drag coefficient
                 frontal_area: Area,         // frontal area [m^2]
-                rec_eff: PrefFloat     // regenerative braking efficiency
+                rec_eff: PrefFloat          // regenerative braking efficiency
                 ) -> Vehicle {
+
         // fill the public fields
         let mut vhl = Vehicle {roll_res_coeff,
                     mass,
@@ -161,9 +162,11 @@ pub fn delta_t(s: Length, a_param: Acceleration, c_param: PerLength, ekin_0: Ava
         
 }
 
-// fn v_to_ekin(v)
+pub fn v_to_ekin(v: Velocity) -> AvailableEnergy {
+    v * v / 2.0
+}
 
-// fn ekin_to_v(ekin)
+// fn ekin_to_v(ekin) // not necessary in direct DP version
 
 // *discretize and undiscretice t and v (4 functions in total)*
 

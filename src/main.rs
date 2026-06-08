@@ -51,6 +51,8 @@ fn main() {
     println!("delta t = {:?}\n", delta_t(test_s, test_a_param, car1.get_c_param(), test_ekin_0));
 
     println!("energy_used = {:?}", energy_used(test_s, test_mom, car1.rec_eff));
+    let test_v = Velocity::new::<kilometer_per_hour>(55.0);
+    println!("velocity = {:?}", v_to_ekin(test_v));
     println!("c={:?}", car1.get_c_param());
     println!("{:?}", g);
     println!("sqrt {}", PrefFloat::sqrt(2.0));
