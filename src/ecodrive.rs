@@ -4,6 +4,7 @@ use uom::si::acceleration::meter_per_second_squared;
 use std::marker::PhantomData;
 
 pub type PrefFloat = f64; // preferred floating point type
+pub use std::f64 as floats;
 pub type PerLength = uom::si::Quantity<uom::si::ISQ<N1, Z0, Z0, Z0, Z0, Z0, Z0>,
                                             uom::si::SI<PrefFloat>, PrefFloat>; // [1/m]
 
@@ -85,9 +86,9 @@ pub fn energy_used(s: Length, mom: Acceleration /* [N/kg] */, rec_eff: PrefFloat
 
 }
 
-fn retrieve_a_param(s: Length, ekin_0: AvailableEnergy, ekin_s: AvailableEnergy, c_param: PerLength) -> Acceleration /* [N/kg] */ {
+pub fn retrieve_a_param(s: Length, ekin_0: AvailableEnergy, ekin_s: AvailableEnergy, c_param: PerLength) -> Acceleration /* [N/kg] */ {
     /* Calculate A parameter necessary to reach `ekin_s` after length `s` when starting with `ekin_0` */
-    let a_param = c_param * (ekin_s - ekin_0 * PrefFloat::pow(PrefFloat::E, (-c_param * s))) / (1.0 - PrefFloat::pow(PrefFloat::E, (-c_param * s)))
+    let a_param = c_param * (ekin_s - ekin_0 * floats::consts::E.powf((-c_param * s).into())) / (1.0 - floats::consts::E.powf((-c_param * s).into()));
     a_param
 }
 
