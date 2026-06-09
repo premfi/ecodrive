@@ -55,9 +55,15 @@ fn main() {
     let test_v = Velocity::new::<kilometer_per_hour>(55.0);
     println!("velocity = {:?}", v_to_ekin(test_v));
 
-    let test_time = Time::new::<second>(199.7);
-    let (max, num) = (Time::new::<second>(200.0), 1000);
-    println!("time discretized = {:?}", discretize_time(test_time, None, max, num));
+    for t in 0..110 {
+        let test_time = Time::new::<second>((2 * t) as PrefFloat);
+        let (max, num) = (Time::new::<second>(200.0), 2000);
+        let t_discrete = discretize_time(test_time, None, max, num);
+        let t_restored = time_bin_to_seconds(t_discrete, None, max, num);
+
+        println!("t = {:?}, t disc = {:?}, t rest = {:?}", test_time, t_discrete, t_restored);
+    }
+
     println!("c={:?}", car1.get_c_param());
     println!("{:?}", g);
     println!("sqrt {}", PrefFloat::sqrt(2.0));

@@ -179,20 +179,25 @@ pub fn discretize_time(t: Time, min: Option<Time>, max: Time, num: usize) -> usi
 
     let min = min.unwrap_or(Time::new::<second>(0.0));
 
-    assert!(min <= max, "`min` is larger than `max`! min={:?}, max={:?}", min, max);
+    assert!(min <= max, "`min` most not be larger than `max`! min={:?}, max={:?}", min, max);
 
     if t < min {
         return 0;
     }
 
     let stepsize = (max - min) / (num - 1) as PrefFloat;
-    println!("stepsize = {:?}", stepsize);
+    // println!("stepsize = {:?}", stepsize);
     let bin_unclipped = PrefFloat::from((t - min) / stepsize).ceil() as usize;
     let bin = std::cmp::min(bin_unclipped, num - 1);
     
     bin
 }
 
-//pub fn time_bin_to_seconds(bin: usize, min: Option<Time>, max:, num:)
+pub fn time_bin_to_seconds(bin: usize, min: Option<Time>, max: Time, num: usize) -> Time {
+    let min = min.unwrap_or(Time::new::<second>(0.0));
+    let stepsize = (max - min) / (num - 1) as PrefFloat;
+
+    stepsize * (bin as PrefFloat) + min
+}
 
 // fn DP(route, vehicle, max_time, time_res, v_res)
