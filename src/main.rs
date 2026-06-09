@@ -1,14 +1,15 @@
 mod ecodrive;
 use ecodrive::*;
 
-use uom::si::f64::{Mass, Area, Length, Ratio, Velocity, Acceleration, AvailableEnergy};
+use uom::si::f64::{Mass, Area, Length, Ratio, Velocity, Acceleration, AvailableEnergy, Time};
 use uom::si::{mass::kilogram,
             area::square_meter, 
             length::meter, 
             ratio::percent, 
             velocity::{meter_per_second, kilometer_per_hour}, 
             acceleration::meter_per_second_squared, 
-            available_energy::joule_per_kilogram};
+            available_energy::joule_per_kilogram,
+            time::second};
 use uom;
 use float_cmp::approx_eq;
 
@@ -53,10 +54,15 @@ fn main() {
     println!("energy_used = {:?}", energy_used(test_s, test_mom, car1.rec_eff));
     let test_v = Velocity::new::<kilometer_per_hour>(55.0);
     println!("velocity = {:?}", v_to_ekin(test_v));
+
+    let test_time = Time::new::<second>(199.7);
+    let (max, num) = (Time::new::<second>(200.0), 1000);
+    println!("time discretized = {:?}", discretize_time(test_time, None, max, num));
     println!("c={:?}", car1.get_c_param());
     println!("{:?}", g);
     println!("sqrt {}", PrefFloat::sqrt(2.0));
     let test_a_retrieved = retrieve_a_param(test_s, test_ekin_0, test_ekin_s, car1.get_c_param());
     println!("retrieved A = {:?}", test_a_retrieved);
-    println!("approx eq? {}", approx_eq!(f64, 1.0_f64, 1.000000000000001_f64, ulps = 2));
+    let u = (-15_i32) as usize;
+    println!("u = {}", u);
 }

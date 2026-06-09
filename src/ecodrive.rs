@@ -170,4 +170,29 @@ pub fn v_to_ekin(v: Velocity) -> AvailableEnergy {
 
 // *discretize and undiscretice t and v (4 functions in total)*
 
+pub fn discretize_time(t: Time, min: Option<Time>, max: Time, num: usize) -> usize {
+    if t == Time::new::<second>(PrefFloat::INFINITY) {
+        return num - 1;
+    }
+
+    assert!(t >= Time::new::<second>(0.0), "`t` must be non-negative! t={:?}", t);
+
+    let min = min.unwrap_or(Time::new::<second>(0.0));
+
+    assert!(min <= max, "`min` is larger than `max`! min={:?}, max={:?}", min, max);
+
+    if t < min {
+        return 0;
+    }
+
+    let stepsize = (max - min) / (num - 1) as PrefFloat;
+    println!("stepsize = {:?}", stepsize);
+    let bin_unclipped = PrefFloat::from((t - min) / stepsize).ceil() as usize;
+    let bin = std::cmp::min(bin_unclipped, num - 1);
+    
+    bin
+}
+
+//pub fn time_bin_to_seconds(bin: usize, min: Option<Time>, max:, num:)
+
 // fn DP(route, vehicle, max_time, time_res, v_res)
