@@ -5,5 +5,4 @@ edition = "2024"
 
 [dependencies]
 float-cmp = "0.10.0"
-num = "0.4.3"
 uom = "0.38.0"

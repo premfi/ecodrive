@@ -22,7 +22,7 @@ pub struct Vehicle {
 }
 
 impl Vehicle {
-    /// Creates a new vehicle
+    /// Creates a new vehicle.
     pub fn new(roll_res_coeff: PrefFloat,   // rolling resistance coefficient
                 rec_eff: PrefFloat,     // regenerative braking efficiency
                 rho_rot: PrefFloat,     // factor for equivalent mass of rotating parts
@@ -46,12 +46,12 @@ impl Vehicle {
         vhl
     }
 
-    /// Calculates C parameter from mass, frontal_area and c_w and sets it
+    /// Recalculates C parameter from mass, frontal_area and c_w.
     fn update_c_param(&mut self) {
         self.c_param = Some(RHO_AIR * self.c_w * self.frontal_area / self.mass)
     }
 
-    /// Gets C parameter
+    /// Gets C parameter.
     pub fn get_c_param(&self) -> PerLength /* [1/m] */ {
         self.c_param.expect("c_param not set! Should have been calculated automatically.")
     }
