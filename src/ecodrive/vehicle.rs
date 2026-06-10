@@ -1,13 +1,11 @@
-use uom::si::f64::{Mass, Area, MassDensity};
+use crate::ecodrive::config::PrefFloat;
+use crate::ecodrive::config::uom_si_preffloat::{Mass, Area, MassDensity};
 use uom::typenum::{N1, Z0};
 
 use std::marker::PhantomData;
 
-pub type PrefFloat = f64; // preferred floating point type
-pub type PerLength = uom::si::Quantity<uom::si::ISQ<N1, Z0, Z0, Z0, Z0, Z0, Z0>,
-                                            uom::si::SI<PrefFloat>, PrefFloat>; // [1/m]
-
-pub const RHO_AIR: MassDensity = MassDensity {dimension: PhantomData, units: PhantomData, value: 1.2}; // air density [kg/m^3]
+use crate::ecodrive::constants::{RHO_AIR};
+use crate::ecodrive::PerLength;
 
 pub struct Vehicle {
     pub roll_res_coeff: PrefFloat,  // rolling resistance coefficient

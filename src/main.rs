@@ -1,15 +1,13 @@
 mod ecodrive;
 use ecodrive::*;
 
-// use vehicle::*;
-
 /* TODO:
-    o put constants in own module
-    o maybe put settings (like f64/f32) in own module, e.g. use uom::si::f64 as uom_si_prefloat; . Then in e.g. vehicle: use uom_si_prefloat::{Mass, Area};
+    x put constants in own module
+    o maybe put settings (like f64/f32) in own module, e.g. use uom::si::f64 as uom_si_preffloat; . Then in e.g. vehicle: use uom_si_preffloat::{Mass, Area};
     o re-export everything from ecodrive, so that only ecodrive needs to be added in main.rs
 */
 
-use uom::si::f64::{Mass, Area, Length, Ratio, Velocity, Acceleration, AvailableEnergy, Time};
+use config::uom_si_preffloat::{Mass, Area, Length, Ratio, Velocity, Acceleration, AvailableEnergy, Time};
 use uom::si::{mass::kilogram,
             area::square_meter, 
             length::meter, 
@@ -18,7 +16,6 @@ use uom::si::{mass::kilogram,
             acceleration::meter_per_second_squared, 
             available_energy::joule_per_kilogram,
             time::second};
-use uom;
 use float_cmp::approx_eq;
 
 
