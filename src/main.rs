@@ -3,7 +3,7 @@ use ecodrive::*;
 
 /* TODO:
     x put constants in own module
-    o maybe put settings (like f64/f32) in own module, e.g. use uom::si::f64 as uom_si_preffloat; . Then in e.g. vehicle: use uom_si_preffloat::{Mass, Area};
+    x maybe put settings (like f64/f32) in own module, e.g. use uom::si::f64 as uom_si_preffloat; . Then in e.g. vehicle: use uom_si_preffloat::{Mass, Area};
     o re-export everything from ecodrive, so that only ecodrive needs to be added in main.rs
 */
 
@@ -19,14 +19,30 @@ use uom::si::{mass::kilogram,
 use float_cmp::approx_eq;
 
 
-fn main() {
+fn main() {    
+    println!("Hello, world!");
+
     /* TODO: Instead of manually defining vehicles, they may be imported from a .csv file, stored in a list, and then executed one by one */
-    let car1 = Vehicle::new(0.01,
-                                Mass::new::<kilogram>(2000.0),
-                                1.1,
+    let mut car1 = Vehicle::new(0.01,
                                 0.3,
+                                1.1,
+                                Mass::new::<kilogram>(2000.0),
                                 Area::new::<square_meter>(2.0),
                                 0.3);
+
+    println!("c={:?}", car1.get_c_param());
+
+    car1.set_mass(Mass::new::<kilogram>(3000.0));
+    println!("mass={:?}", car1.get_mass());
+    println!("c={:?}", car1.get_c_param());
+
+    car1.set_c_w(0.8);
+    println!("c_w={:?}", car1.get_c_w());
+    println!("c={:?}", car1.get_c_param());
+
+    car1.set_frontal_area(Area::new::<square_meter>(3.2));
+    println!("frontal_area={:?}", car1.get_frontal_area());
+    println!("c={:?}", car1.get_c_param());
 
     let lengths = vec![Length::new::<meter>(50.0),
                         Length::new::<meter>(100.0),
@@ -45,7 +61,6 @@ fn main() {
     
     let route0 = Route {lengths, slopes, max_speeds};
 
-    println!("Hello, world!");
     /* println!("g={:?}", GRAVITY_OF_EARTH);
     println!("{:?}", car1.mass * car1.frontal_area);
     let g = uom::si::acceleration::meter_per_second_squared{};
@@ -86,5 +101,4 @@ fn main() {
     println!("v = {:?}, v disc = {:?}, v rest = {:?}", test_velocity, v_discrete, v_restored);
     */
 
-    // println!("c={:?}", car1.get_c_param());
 }

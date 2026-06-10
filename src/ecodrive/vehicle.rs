@@ -9,41 +9,42 @@ use crate::ecodrive::PerLength;
 
 pub struct Vehicle {
     pub roll_res_coeff: PrefFloat,  // rolling resistance coefficient
-    pub mass: Mass,                 // vehicle mass [kg]
-    pub rho_rot: PrefFloat,         // factor for equivalent mass of rotating parts
-    pub c_w: PrefFloat,             // drag coefficient
-    pub frontal_area: Area,         // frontal area [m^2]
-    pub rec_eff: PrefFloat,          // regenerative braking efficiency
-    c_param: Option<PerLength> // C parameter (mass-normalized air resistance prefactor) [1/m]. Automatically calculated.
+    pub rho_rot: PrefFloat,     // factor for equivalent mass of rotating parts
+    pub rec_eff: PrefFloat,     // regenerative braking efficiency
+    mass: Mass,                 // vehicle mass [kg]
+    frontal_area: Area,         // frontal area [m^2]
+    c_w: PrefFloat,             // drag coefficient
+    c_param: Option<PerLength>  // C parameter (mass-normalized air resistance prefactor) [1/m]. Automatically calculated.
 }
 
 impl Vehicle {
-    pub fn new(roll_res_coeff: PrefFloat, // rolling resistance coefficient
-                mass: Mass,                 // vehicle mass [kg]
-                rho_rot: PrefFloat,         // factor for equivalent mass of rotating parts
-                c_w: PrefFloat,             // drag coefficient
-                frontal_area: Area,         // frontal area [m^2]
-                rec_eff: PrefFloat          // regenerative braking efficiency
+    pub fn new(roll_res_coeff: PrefFloat,   // rolling resistance coefficient
+                rec_eff: PrefFloat,     // regenerative braking efficiency
+                rho_rot: PrefFloat,     // factor for equivalent mass of rotating parts
+                mass: Mass,             // vehicle mass [kg]
+                frontal_area: Area,     // frontal area [m^2]
+                c_w: PrefFloat          // drag coefficient
                 ) -> Vehicle {
 
         // fill the public fields
         let mut vhl = Vehicle {roll_res_coeff,
-                    mass,
-                    rho_rot,
-                    c_w,
-                    frontal_area,
                     rec_eff,
+                    rho_rot,
+                    mass,
+                    frontal_area,
+                    c_w,
                     c_param: None};
 
-        // calculate and set C parameter from given values
-        vhl.c_param = Some(vhl.calc_c_param());
+        // calculate C parameter from given values
+        vhl.update_c_param();
 
         vhl
     }
 
-    fn calc_c_param(&self) -> PerLength /* [1/m] */ {
-        /* calculate C parameter from given values */
-        RHO_AIR * self.c_w * self.frontal_area / self.mass
+
+    fn update_c_param(&mut self) {
+        /* calculate C parameter from c_w, frontal_area and mass */
+        self.c_param = Some(RHO_AIR * self.c_w * self.frontal_area / self.mass)
     }
 
     pub fn get_c_param(&self) -> PerLength /* [1/m] */ {
@@ -51,8 +52,33 @@ impl Vehicle {
         self.c_param.expect("c_param not set! Should have been calculated automatically.")
     }
 
-    // pub fn set_mass(&mut self, mass: Mass) {
-    //     self.mass = mass;
-    //     self.calc_c_param();
-    // }
+
+    pub fn set_mass(&mut self, mass: Mass) {
+        self.mass = mass;
+        self.update_c_param();
+    }
+
+    pub fn get_mass(&self) -> Mass {
+        self.mass
+    }
+    
+
+    pub fn set_c_w(&mut self, c_w: PrefFloat) {
+        self.c_w = c_w;
+        self.update_c_param();
+    }
+
+    pub fn get_c_w(&self) -> PrefFloat {
+        self.c_w
+    }
+
+
+    pub fn set_frontal_area(&mut self, frontal_area: Area) {
+        self.frontal_area = frontal_area;
+        self.update_c_param();
+    }
+
+    pub fn get_frontal_area(&self) -> Area {
+        self.frontal_area
+    }
 }
