@@ -163,6 +163,7 @@ pub fn delta_t(s: Length, a_param: Acceleration, c_param: PerLength, ekin_0: Ava
         
 }
 
+
 pub fn v_to_ekin(v: Velocity) -> AvailableEnergy {
     v * v / 2.0
 }
@@ -171,28 +172,28 @@ pub fn v_to_ekin(v: Velocity) -> AvailableEnergy {
 
 // *discretize and undiscretice t and v (4 functions in total)*
 
+
 pub fn discretize_time(t: Time, min: Option<Time>, max: Time, num: usize) -> usize {
-    if t == Time::new::<second>(PrefFloat::INFINITY) {
-        return num - 1;
-    }
 
     assert!(t >= Time::new::<second>(0.0), "`t` must be non-negative! t={:?}", t);
 
     let min = min.unwrap_or(Time::new::<second>(0.0));
-
     assert!(min <= max, "`min` must not be larger than `max`! min={:?}, max={:?}", min, max);
+
+    if t > max {
+        return num - 1;
+    }
 
     if t < min {
         return 0;
     }
 
     let stepsize = (max - min) / (num - 1) as PrefFloat;
-    // println!("stepsize = {:?}", stepsize);
-    let bin_unclipped = PrefFloat::from((t - min) / stepsize).ceil() as usize;
-    let bin = std::cmp::min(bin_unclipped, num - 1);
+    let bin = PrefFloat::from((t - min) / stepsize).ceil() as usize;
     
     bin
 }
+
 
 pub fn time_bin_to_seconds(bin: usize, min: Option<Time>, max: Time, num: usize) -> Time {
     let min = min.unwrap_or(Time::new::<second>(0.0));
@@ -201,10 +202,12 @@ pub fn time_bin_to_seconds(bin: usize, min: Option<Time>, max: Time, num: usize)
     stepsize * (bin as PrefFloat) + min
 }
 
+
 pub fn discretize_v(v: Velocity, min: Option<Velocity>, max: Velocity, num: usize) -> usize {
 
-    let min = min.unwrap_or(Velocity::new::<meter_per_second>(0.0));
     assert!(v >= Velocity::new::<meter_per_second>(0.0), "`v`must be non-negative! v={:?}", v);
+    
+    let min = min.unwrap_or(Velocity::new::<meter_per_second>(0.0));
     assert!(min <= max, "`min` must not be larger than `max`! min={:?}, max={:?}", min, max);
 
     if v > max {
