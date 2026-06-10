@@ -30,8 +30,8 @@ pub struct Route {
 
 // fn e_kin(s, )
 
+/// Returns specific used energy when applying moment `mom` on length `s`.
 pub fn energy_used(s: Length, mom: Acceleration /* [N/kg] */, rec_eff: PrefFloat) -> AvailableEnergy /* [J/kg] */ {
-    /* Specific used energy when applying moment `mom` on length `s` */
     if mom >= Acceleration::new::<meter_per_second_squared>(0.0) {
         s * mom
     } else {
@@ -39,12 +39,13 @@ pub fn energy_used(s: Length, mom: Acceleration /* [N/kg] */, rec_eff: PrefFloat
     }
 }
 
+/// Calculates A parameter necessary to reach `ekin_s` after length `s` when starting with `ekin_0`.
 pub fn retrieve_a_param(s: Length, ekin_0: AvailableEnergy, ekin_s: AvailableEnergy, c_param: PerLength) -> Acceleration /* [N/kg] */ {
-    /* Calculate A parameter necessary to reach `ekin_s` after length `s` when starting with `ekin_0` */
     let a_param = c_param * (ekin_s - ekin_0 * floats::consts::E.powf((-c_param * s).into())) / (1.0 - floats::consts::E.powf((-c_param * s).into()));
     a_param
 }
 
+/// Calculates the time needed for a section.
 pub fn delta_t(s: Length, a_param: Acceleration, c_param: PerLength, ekin_0: AvailableEnergy) -> Time {
    
     // A = 0
@@ -111,7 +112,7 @@ pub fn delta_t(s: Length, a_param: Acceleration, c_param: PerLength, ekin_0: Ava
         
 }
 
-
+/// Converts v into corresponding specific kinetic energy.
 pub fn v_to_ekin(v: Velocity) -> AvailableEnergy {
     v * v / 2.0
 }
@@ -120,6 +121,8 @@ pub fn v_to_ekin(v: Velocity) -> AvailableEnergy {
 
 // *discretize and undiscretice t and v (4 functions in total)*
 
+/// Assings `t` to its corresponding bin from [0, `num-1`]. Bins are linearly spaced between `min` and `max`.
+/// Positive values out of range are clamped into the edge bins. Panics for negative `t` inputs.
 pub fn discretize_time(t: Time, min: Option<Time>, max: Time, num: usize) -> usize {
 
     assert!(t >= Time::new::<second>(0.0), "`t` must be non-negative! t={:?}", t);
@@ -141,7 +144,7 @@ pub fn discretize_time(t: Time, min: Option<Time>, max: Time, num: usize) -> usi
     bin
 }
 
-
+/// Translates time bin to corresponding Time value.
 pub fn time_bin_to_seconds(bin: usize, min: Option<Time>, max: Time, num: usize) -> Time {
     let min = min.unwrap_or(Time::new::<second>(0.0));
     let stepsize = (max - min) / (num - 1) as PrefFloat;
@@ -149,7 +152,8 @@ pub fn time_bin_to_seconds(bin: usize, min: Option<Time>, max: Time, num: usize)
     stepsize * (bin as PrefFloat) + min
 }
 
-
+/// Assings `v` to its corresponding bin from [0, `num-1`]. Bins are linearly spaced between `min` and `max`.
+/// Positive values out of range are clamped into the edge bins. Panics for negative `v` inputs.
 pub fn discretize_v(v: Velocity, min: Option<Velocity>, max: Velocity, num: usize) -> usize {
 
     assert!(v >= Velocity::new::<meter_per_second>(0.0), "`v`must be non-negative! v={:?}", v);
@@ -171,7 +175,7 @@ pub fn discretize_v(v: Velocity, min: Option<Velocity>, max: Velocity, num: usiz
     bin
 }
 
-
+/// Translates speed bin to corresponding Velocity.
 pub fn v_bin_to_mps(bin: usize, min: Option<Velocity>, max: Velocity, num: usize) -> Velocity {
     let min = min.unwrap_or(Velocity::new::<meter_per_second>(0.0));
     let stepsize = (max - min) / (num - 1) as PrefFloat;

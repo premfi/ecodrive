@@ -23,25 +23,13 @@ fn main() {
     println!("Hello, world!");
 
     /* TODO: Instead of manually defining vehicles, they may be imported from a .csv file, stored in a list, and then executed one by one */
-    let mut car1 = Vehicle::new(0.01,
+    let car1 = Vehicle::new(0.01,
                                 0.3,
                                 1.1,
                                 Mass::new::<kilogram>(2000.0),
                                 Area::new::<square_meter>(2.0),
                                 0.3);
 
-    println!("c={:?}", car1.get_c_param());
-
-    car1.set_mass(Mass::new::<kilogram>(3000.0));
-    println!("mass={:?}", car1.get_mass());
-    println!("c={:?}", car1.get_c_param());
-
-    car1.set_c_w(0.8);
-    println!("c_w={:?}", car1.get_c_w());
-    println!("c={:?}", car1.get_c_param());
-
-    car1.set_frontal_area(Area::new::<square_meter>(3.2));
-    println!("frontal_area={:?}", car1.get_frontal_area());
     println!("c={:?}", car1.get_c_param());
 
     let lengths = vec![Length::new::<meter>(50.0),

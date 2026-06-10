@@ -7,6 +7,10 @@ use std::marker::PhantomData;
 use crate::ecodrive::constants::{RHO_AIR};
 use crate::ecodrive::PerLength;
 
+/// Struct containing all relevant data of a single vehicle.
+/// 
+/// C parameter is calculated from mass, frontal_area and c_w. These fields can only be accessed 
+/// via their set/get methods to ensure a valid value of C parameter at all times.
 pub struct Vehicle {
     pub roll_res_coeff: PrefFloat,  // rolling resistance coefficient
     pub rho_rot: PrefFloat,     // factor for equivalent mass of rotating parts
@@ -18,6 +22,7 @@ pub struct Vehicle {
 }
 
 impl Vehicle {
+    /// Creates a new vehicle
     pub fn new(roll_res_coeff: PrefFloat,   // rolling resistance coefficient
                 rec_eff: PrefFloat,     // regenerative braking efficiency
                 rho_rot: PrefFloat,     // factor for equivalent mass of rotating parts
@@ -41,14 +46,13 @@ impl Vehicle {
         vhl
     }
 
-
+    /// Calculates C parameter from mass, frontal_area and c_w and sets it
     fn update_c_param(&mut self) {
-        /* calculate C parameter from c_w, frontal_area and mass */
         self.c_param = Some(RHO_AIR * self.c_w * self.frontal_area / self.mass)
     }
 
+    /// Gets C parameter
     pub fn get_c_param(&self) -> PerLength /* [1/m] */ {
-        /* get C parameter */
         self.c_param.expect("c_param not set! Should have been calculated automatically.")
     }
 
