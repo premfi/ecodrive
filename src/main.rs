@@ -55,13 +55,19 @@ fn main() {
     let test_v = Velocity::new::<kilometer_per_hour>(55.0);
     println!("velocity = {:?}", v_to_ekin(test_v));
 
-    for t in 0..110 {
-        let test_time = Time::new::<second>((2 * t) as PrefFloat);
-        let (max, num) = (Time::new::<second>(200.0), 2000);
-        let t_discrete = discretize_time(test_time, None, max, num);
-        let t_restored = time_bin_to_seconds(t_discrete, None, max, num);
+    let t = 50;
+    let test_time = Time::new::<second>((2 * t) as PrefFloat);
+    let (max, num) = (Time::new::<second>(200.0), 2000);
+    let t_discrete = discretize_time(test_time, None, max, num);
+    let t_restored = time_bin_to_seconds(t_discrete, None, max, num);
 
-        println!("t = {:?}, t disc = {:?}, t rest = {:?}", test_time, t_discrete, t_restored);
+    for v in 0..110 {
+    let test_velocity = Velocity::new::<meter_per_second>((2 *v) as PrefFloat);
+    let (max, num) = (Velocity::new::<meter_per_second>(200.0), 2000);
+    let v_discrete = discretize_v(test_velocity, None, max, num);
+    // let v_restored = v_(tvdiscrete, None, max, num);
+
+    println!("v = {:?}, v disc = {:?}, v rest = ", test_velocity, v_discrete);
     }
 
     println!("c={:?}", car1.get_c_param());

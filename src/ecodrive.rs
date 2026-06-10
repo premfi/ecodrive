@@ -2,6 +2,7 @@ use uom::si::f64::{Mass, Area, Acceleration, MassDensity, Length, Velocity, Rati
 use uom::typenum::{N1, Z0};
 use uom::si::{acceleration::meter_per_second_squared,
             available_energy::joule_per_kilogram,
+            velocity::meter_per_second,
             time::second};
 use std::marker::PhantomData;
 use float_cmp::approx_eq;
@@ -179,7 +180,7 @@ pub fn discretize_time(t: Time, min: Option<Time>, max: Time, num: usize) -> usi
 
     let min = min.unwrap_or(Time::new::<second>(0.0));
 
-    assert!(min <= max, "`min` most not be larger than `max`! min={:?}, max={:?}", min, max);
+    assert!(min <= max, "`min` must not be larger than `max`! min={:?}, max={:?}", min, max);
 
     if t < min {
         return 0;
@@ -198,6 +199,26 @@ pub fn time_bin_to_seconds(bin: usize, min: Option<Time>, max: Time, num: usize)
     let stepsize = (max - min) / (num - 1) as PrefFloat;
 
     stepsize * (bin as PrefFloat) + min
+}
+
+pub fn discretize_v(v: Velocity, min: Option<Velocity>, max: Velocity, num: usize) -> usize {
+
+    let min = min.unwrap_or(Velocity::new::<meter_per_second>(0.0));
+    assert!(v >= Velocity::new::<meter_per_second>(0.0), "`v`must be non-negative! v={:?}", v);
+    assert!(min <= max, "`min` must not be larger than `max`! min={:?}, max={:?}", min, max);
+
+    if v > max {
+        return num - 1;
+    }
+
+    if v < min {
+        return 0;
+    }
+
+    let stepsize = (max - min) / (num - 1) as PrefFloat;
+    let bin = PrefFloat::from((v - min) / stepsize).floor() as usize;
+
+    bin
 }
 
 // fn DP(route, vehicle, max_time, time_res, v_res)
