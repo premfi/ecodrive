@@ -65,9 +65,9 @@ fn main() {
     let test_velocity = Velocity::new::<meter_per_second>((2 *v) as PrefFloat);
     let (max, num) = (Velocity::new::<meter_per_second>(200.0), 2000);
     let v_discrete = discretize_v(test_velocity, None, max, num);
-    // let v_restored = v_(tvdiscrete, None, max, num);
+    let v_restored = v_bin_to_mps(v_discrete, None, max, num);
 
-    println!("v = {:?}, v disc = {:?}, v rest = ", test_velocity, v_discrete);
+    println!("v = {:?}, v disc = {:?}, v rest = {:?}", test_velocity, v_discrete, v_restored);
     }
 
     println!("c={:?}", car1.get_c_param());

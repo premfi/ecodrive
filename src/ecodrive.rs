@@ -224,4 +224,12 @@ pub fn discretize_v(v: Velocity, min: Option<Velocity>, max: Velocity, num: usiz
     bin
 }
 
+
+pub fn v_bin_to_mps(bin: usize, min: Option<Velocity>, max: Velocity, num: usize) -> Velocity {
+    let min = min.unwrap_or(Velocity::new::<meter_per_second>(0.0));
+    let stepsize = (max - min) / (num - 1) as PrefFloat;
+
+    stepsize * (bin as PrefFloat) + min
+}
+
 // fn DP(route, vehicle, max_time, time_res, v_res)
