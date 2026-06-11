@@ -18,7 +18,7 @@ use uom::si::{mass::kilogram,
             time::second};
 use float_cmp::approx_eq;
 
-use ndarray::Array1;
+use ndarray::{Array1, Array3};
 
 
 fn main() {    
@@ -56,12 +56,30 @@ fn main() {
 
     let route0 = Route {lengths: lengths.clone(), slopes: slopes.clone(), max_speeds: max_speeds.clone()};
 
+    let route3_res8 = Route {lengths: vec![Length::new::<meter>(50.0); 40],
+                        slopes: vec![Ratio::new::<percent>(0.0); 40],
+                        max_speeds: vec![Velocity::new::<kilometer_per_hour>(100.0); 40]};
+
     println!("sleops={:?}", route0.slopes);
 
-    let max_time = Time::new::<second>(200.0);
+    let max_time = Time::new::<second>(50.0);
     let time_res = 500;
     let v_res = 101;
     println!("DP: {}", dp_optim(&route0, &car1, max_time, time_res, v_res));
+
+    let mut arr4 = Array3::from_shape_vec((3, 3, 3), (0..27).collect()).unwrap();
+    arr4[[1, 0, 1]] = 15;
+    arr4[[1, 2, 0]] = 18;
+
+    // use ndarray_stats::QuantileExt;
+    // let max4 = arr4.select(ndarray::Axis(0), &[1]).map_axis(ndarray::Axis(2), |view| view.argmax().unwrap());
+    // let max5 = arr4.select(ndarray::Axis(0), &[1, 2]).argmax().unwrap();
+    // let total_max = arr4.argmax();//.map(|view| view.min());
+    // println!("max4={:?}", max4);
+    // println!("max5={:?}", max5);
+    // println!("total_max={:?}", total_max);
+    // println!("arr4={:?}", arr4);
+    // println!("arr4.shape: {:?}", arr4.shape()[0]);
 
     // fn el_wise<A, B, C>(f: fn(A, B) -> C, va: &Vec<A>, vb: &Vec<B>) -> Vec<C> {
     //     println!("el_wise called!");

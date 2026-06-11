@@ -20,8 +20,10 @@ use uom::typenum::{N1, Z0};
 pub type PerLength = uom::si::Quantity<uom::si::ISQ<N1, Z0, Z0, Z0, Z0, Z0, Z0>,
                                             uom::si::SI<PrefFloat>, PrefFloat>; // [1/m]
 
-use ndarray::Array3;
+use ndarray::{Array3, Axis};
+use ndarray_stats::QuantileExt;
 
+use std::time;
 
 pub struct Route {
     pub lengths: Vec<Length>,
@@ -191,6 +193,7 @@ pub fn v_bin_to_mps(bin: usize, min: Option<Velocity>, max: Velocity, num: usize
 }
 
 pub fn dp_optim(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usize, v_res: usize) -> i16 {
+    let start_time_dp = time::Instant::now();
     println!("DP called!");
     // TODO: check that no max_speed is larger than GLOBAL_V_MAX, or at least check that it will be clamped automatically by discretize_v
     // maybe don't throw an error in this case, but print that it will be clamped to GLOBAL_V_MAX and do that
@@ -231,7 +234,6 @@ pub fn dp_optim(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usize, 
         let s = route.lengths[step];
         let route_res = route_resistances[step];
         let max_speed_discretized = std::cmp::min(max_speeds_discretized[step], max_speeds_discretized[step+1]);
-        println!("max_v_disc={:?}", v_bin_to_mps(max_speed_discretized, None, GLOBAL_V_MAX, v_res));
 
         // go through all populated states at the current step
         for state_v in 0..v_res {
@@ -288,16 +290,20 @@ pub fn dp_optim(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usize, 
                         mat_e_used[[step+1, v_next_discretized, time_used_next_discretized]] = energy_used_next;
                     }
                 }
-
             }
-
-
         }
-
+        println!("{}% finished", (step + 1) * 100 / num_sections);
     }
 
     // ==== RETRIEVAL OF BEST PATH =============================
 
+    let (_, v_opt, t_opt) = mat_e_used.select(Axis(0), &[mat_e_used.shape()[0] - 1]).argmin().unwrap(); // TODO: Error handling instead of unwrap!
+    let minimal_energy = mat_e_used[[mat_e_used.shape()[0] - 1, v_opt, t_opt]]; // mat_e_used.select(Axis(0), &[mat_e_used.shape()[0] - 1]).min().unwrap();
+    println!("\nv_opt={:?}, t_opt={:?}", v_opt, t_opt);
+    println!("minimal_energy= {:?}", minimal_energy);
+
+    let elapsed_time = start_time_dp.elapsed();
+    println!("Running dp_optim() took {} ms", elapsed_time.as_millis());
     println!("OUTPUT = {:?}", num_sections);
     0
 }
