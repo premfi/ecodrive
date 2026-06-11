@@ -5,4 +5,5 @@ edition = "2024"
 
 [dependencies]
 float-cmp = "0.10.0"
+ndarray = "0.17.2"
 uom = "0.38.0"

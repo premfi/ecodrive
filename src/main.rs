@@ -18,6 +18,8 @@ use uom::si::{mass::kilogram,
             time::second};
 use float_cmp::approx_eq;
 
+use ndarray::Array1;
+
 
 fn main() {    
     println!("Hello, world!");
@@ -47,7 +49,55 @@ fn main() {
                         Velocity::new::<kilometer_per_hour>(130.0),
                         Velocity::new::<kilometer_per_hour>(130.0)];
     
-    let route0 = Route {lengths, slopes, max_speeds};
+    let rat = Ratio::new::<percent>(15.0);
+
+    println!("rat= {}", rat.get::<uom::si::ratio::ratio>() + 0.5);
+    println!("route_res= {:?}", route_res(-slopes[1], car1.roll_res_coeff));
+
+    let route0 = Route {lengths: lengths.clone(), slopes, max_speeds: max_speeds.clone()};
+
+
+    let max_time = Time::new::<second>(200.0);
+    let time_res = 500;
+    let v_res = 101;
+    println!("DP: {}", dp_optim(&route0, &car1, max_time, time_res, v_res));
+
+    // fn el_wise<A, B, C>(f: fn(A, B) -> C, va: &Vec<A>, vb: &Vec<B>) -> Vec<C> {
+    //     println!("el_wise called!");
+    //     std::iter::zip(va, vb).map(|(a, b)| f(a, b)).collect()
+    // }
+
+    // let res = el_wise(<&i64 as std::ops::Add>::add, &vec![&101_i64], &vec![&3_i64]);
+    // println!("el_wise={:?}", res);
+
+    println!("1 + 2 = {:?}", &1 + &2);
+
+    // let div: Vec<Time> = std::iter::zip(lengths, max_speeds).map(|(s, v)| {s / v}).collect();
+    // // for d in div {
+    // //     println!("={:?}", d);
+    // // }
+    // println!("{:?}", div);
+    // println!("{:?}", div.into_iter().sum());
+
+    let sum = std::iter::zip(lengths, max_speeds).map(|(s, v)| {s / v}).sum::<Time>();
+    println!("sum={:?}", sum);
+
+
+    let mut arr1 = ndarray::Array3::<f64>::ones((3, 4, 5));
+    // println!("{:?}", arr1);
+    arr1[[2, 2, 2]] = 15.5;
+    // println!("{:?}", arr1);
+
+    let arr2 = ndarray::Array3::<f64>::ones((3, 4, 5));
+    let arr3 = 3.0 * arr2 / arr1;
+    // println!("{:?}", arr3);
+
+    // let v_arr1 = Array1::from_vec(vec![Velocity::new::<meter_per_second>(1.), Velocity::new::<meter_per_second>(2.), Velocity::new::<meter_per_second>(3.)]);
+    // let v_arr2 = Array1::from_vec(vec![Velocity::new::<meter_per_second>(2.), Velocity::new::<meter_per_second>(2.), Velocity::new::<meter_per_second>(4.)]);
+
+    // let v_arr3 = v_arr1 / v_arr2;
+
+    // println!("{:?}", v_arr3);
 
     /* println!("g={:?}", GRAVITY_OF_EARTH);
     println!("{:?}", car1.mass * car1.frontal_area);

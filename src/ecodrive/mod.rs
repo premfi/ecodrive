@@ -20,6 +20,8 @@ use uom::typenum::{N1, Z0};
 pub type PerLength = uom::si::Quantity<uom::si::ISQ<N1, Z0, Z0, Z0, Z0, Z0, Z0>,
                                             uom::si::SI<PrefFloat>, PrefFloat>; // [1/m]
 
+use ndarray::Array1;
+
 
 pub struct Route {
     pub lengths: Vec<Length>,
@@ -37,6 +39,11 @@ pub fn energy_used(s: Length, mom: Acceleration /* [N/kg] */, rec_eff: PrefFloat
     } else {
         s * mom * rec_eff
     }
+}
+
+/// Returns the specific route resistance, consisting of slope and rolling resistance.
+pub fn route_res(slope: Ratio, roll_res_coeff: PrefFloat) -> Acceleration /* [N/kg] */ {
+    GRAVITY_OF_EARTH * (slope.get::<uom::si::ratio::ratio>() + roll_res_coeff)
 }
 
 /// Calculates A parameter necessary to reach `ekin_s` after length `s` when starting with `ekin_0`.
@@ -183,7 +190,7 @@ pub fn v_bin_to_mps(bin: usize, min: Option<Velocity>, max: Velocity, num: usize
     stepsize * (bin as PrefFloat) + min
 }
 
-fn DP(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usize, v_res: usize) -> i16 {
+pub fn dp_optim(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usize, v_res: usize) -> i16 {
     println!("DP called!");
 
     0
