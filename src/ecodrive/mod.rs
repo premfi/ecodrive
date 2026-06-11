@@ -11,7 +11,7 @@ use config::uom_si_preffloat::{Mass, Area, Acceleration, MassDensity, Length, Ve
 use config::floats;
 
 pub mod constants;
-use constants::{GRAVITY_OF_EARTH, RHO_AIR};
+use constants::{GRAVITY_OF_EARTH, RHO_AIR, GLOBAL_V_MAX, GLOBAL_MOM_MAX};
 
 mod vehicle;
 pub use vehicle::Vehicle;
@@ -20,7 +20,7 @@ use uom::typenum::{N1, Z0};
 pub type PerLength = uom::si::Quantity<uom::si::ISQ<N1, Z0, Z0, Z0, Z0, Z0, Z0>,
                                             uom::si::SI<PrefFloat>, PrefFloat>; // [1/m]
 
-use ndarray::Array1;
+use ndarray::Array3;
 
 
 pub struct Route {
@@ -192,6 +192,44 @@ pub fn v_bin_to_mps(bin: usize, min: Option<Velocity>, max: Velocity, num: usize
 
 pub fn dp_optim(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usize, v_res: usize) -> i16 {
     println!("DP called!");
+    // TODO: check that no max_speed is larger than GLOBAL_V_MAX, or at least check that it will be clamped automatically by discretize_v
+    // maybe don't throw an error in this case, but print that it will be clamped to GLOBAL_V_MAX and do that
 
+    let (min_moment, max_moment) = (-GLOBAL_MOM_MAX * vehicle.rho_rot, GLOBAL_MOM_MAX * vehicle.rho_rot);
+
+    let route_resistances: Vec<Acceleration> = route.slopes.iter().map(|&slope| route_res(slope, vehicle.roll_res_coeff)).collect();
+    
+    let mut max_speeds_discretized: Vec<usize> = route.max_speeds.iter().map(|&max_speed| discretize_v(max_speed, None, GLOBAL_V_MAX, v_res)).collect();
+    
+    // ensure that vehicle (nearly) stops at the end
+    let max_allowed_end_speed = Velocity::new::<meter_per_second>(2.0);
+    let max_allowed_end_speed_discretized = discretize_v(max_allowed_end_speed, None, GLOBAL_V_MAX, v_res);
+    max_speeds_discretized.push(max_allowed_end_speed_discretized);
+    
+    let num_sections = route.lengths.len();
+    let parent_uninit = usize::MAX;
+
+    // create matrices to store best paths and their energies
+    let mut mat_e_used  = Array3::<AvailableEnergy>::zeros((num_sections + 1, v_res, t_res)); // contains energy of best path to this state found so far
+    let mut mat_parents = Array3::<          usize>::zeros((num_sections + 1, v_res, t_res)); // each element is the flattened index of the parent state
+
+    // So far, no paths exist yet. So the minimal energy is infinite and all parents uninitialized
+    mat_e_used.fill(AvailableEnergy::new::<joule_per_kilogram>(PrefFloat::INFINITY));
+    mat_parents.fill(parent_uninit);
+
+    // initialize step 0 with [0, 0] as only populated state and 0 used energy
+    mat_e_used[[0, 0, 0]] = AvailableEnergy::new::<joule_per_kilogram>(0.0);
+    mat_parents[[0, 0, 0]] = 0;
+
+    // go through route section by section
+    for step in 0..num_sections {
+        let s = route.lengths[step];
+        let route_res = route_resistances[step];
+        let max_speed_discretized = std::cmp::min(max_speeds_discretized[step], max_speeds_discretized[step+1]);
+        println!("max_v_disc={:?}", v_bin_to_mps(max_speed_discretized, None, GLOBAL_V_MAX, v_res));
+
+    }
+
+    println!("OUTPUT = {:?}", num_sections);
     0
 }

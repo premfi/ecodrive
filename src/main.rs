@@ -52,10 +52,11 @@ fn main() {
     let rat = Ratio::new::<percent>(15.0);
 
     println!("rat= {}", rat.get::<uom::si::ratio::ratio>() + 0.5);
-    println!("route_res= {:?}", route_res(-slopes[1], car1.roll_res_coeff));
+    println!("route_res= {:?}", route_res(slopes[1], car1.roll_res_coeff));
 
-    let route0 = Route {lengths: lengths.clone(), slopes, max_speeds: max_speeds.clone()};
+    let route0 = Route {lengths: lengths.clone(), slopes: slopes.clone(), max_speeds: max_speeds.clone()};
 
+    println!("sleops={:?}", route0.slopes);
 
     let max_time = Time::new::<second>(200.0);
     let time_res = 500;
@@ -83,10 +84,10 @@ fn main() {
     println!("sum={:?}", sum);
 
 
-    let mut arr1 = ndarray::Array3::<f64>::ones((3, 4, 5));
+    let mut arr1 = ndarray::Array3::<f64>::zeros((3, 4, 5));
+    arr1.fill(f64::INFINITY);
     // println!("{:?}", arr1);
     arr1[[2, 2, 2]] = 15.5;
-    // println!("{:?}", arr1);
 
     let arr2 = ndarray::Array3::<f64>::ones((3, 4, 5));
     let arr3 = 3.0 * arr2 / arr1;
