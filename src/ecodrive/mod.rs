@@ -195,6 +195,9 @@ pub fn dp_optim(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usize, 
     // TODO: check that no max_speed is larger than GLOBAL_V_MAX, or at least check that it will be clamped automatically by discretize_v
     // maybe don't throw an error in this case, but print that it will be clamped to GLOBAL_V_MAX and do that
 
+    // ==== PRELIMINARIES AND DEFINITIONS =================
+
+    // set moment bounds, including rho_rot
     let (min_moment, max_moment) = (-GLOBAL_MOM_MAX * vehicle.rho_rot, GLOBAL_MOM_MAX * vehicle.rho_rot);
 
     let route_resistances: Vec<Acceleration> = route.slopes.iter().map(|&slope| route_res(slope, vehicle.roll_res_coeff)).collect();
@@ -211,15 +214,17 @@ pub fn dp_optim(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usize, 
 
     // create matrices to store best paths and their energies
     let mut mat_e_used  = Array3::<AvailableEnergy>::zeros((num_sections + 1, v_res, t_res)); // contains energy of best path to this state found so far
-    let mut mat_parents = Array3::<          usize>::zeros((num_sections + 1, v_res, t_res)); // each element is the flattened index of the parent state
+    let mut mat_parents = Array3::<          usize>::zeros((num_sections + 1, v_res, t_res)); // each element is the flattened index of the parent state [t, v]
 
-    // So far, no paths exist yet. So the minimal energy is infinite and all parents uninitialized
+    // so far, no paths exist yet. So the minimal energy is infinite and all parents uninitialized
     mat_e_used.fill(AvailableEnergy::new::<joule_per_kilogram>(PrefFloat::INFINITY));
     mat_parents.fill(parent_uninit);
 
     // initialize step 0 with [0, 0] as only populated state and 0 used energy
     mat_e_used[[0, 0, 0]] = AvailableEnergy::new::<joule_per_kilogram>(0.0);
     mat_parents[[0, 0, 0]] = 0;
+
+    // ==== ACTUAL OPTIMIZATION ============================
 
     // go through route section by section
     for step in 0..num_sections {
@@ -228,7 +233,70 @@ pub fn dp_optim(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usize, 
         let max_speed_discretized = std::cmp::min(max_speeds_discretized[step], max_speeds_discretized[step+1]);
         println!("max_v_disc={:?}", v_bin_to_mps(max_speed_discretized, None, GLOBAL_V_MAX, v_res));
 
+        // go through all populated states at the current step
+        for state_v in 0..v_res {
+            let ekin_curr = v_to_ekin(v_bin_to_mps(state_v, None, GLOBAL_V_MAX, v_res));
+
+            for state_t in 0..t_res {
+
+                // skip unpopulated states
+                if mat_parents[[step, state_v, state_t]] == parent_uninit {
+                    continue;
+                }
+
+                // branch out from populated states
+                for v_next_discretized in 0..=max_speed_discretized {
+                    
+                    let ekin_next = v_to_ekin(v_bin_to_mps(v_next_discretized, None, GLOBAL_V_MAX, v_res));
+
+                    // discard path if vehicle would stand still across the whole section
+                    if approx_eq!(PrefFloat, ekin_curr.value, 0.0, ulps=2) && approx_eq!(PrefFloat, ekin_next.value, 0.0, ulps=2) {
+                        continue;
+                    }
+
+                    // calculate necessary A to reach that next ekin
+                    let a_param = retrieve_a_param(s, ekin_curr, ekin_next, vehicle.get_c_param());
+                    let mom = a_param + route_res; // mom includes rho_rot
+
+                    // skip if necessary moment is not allowed
+                    if mom < min_moment {
+                        continue; // try again with next-larger velocity
+                    }
+                    if mom > max_moment {
+                        break; // larger velocities will also exceed max_moment
+                    }
+
+                    // add time for the current section to time used so far
+                    let time_used_next = delta_t(s, a_param, vehicle.get_c_param(), ekin_curr) + time_bin_to_seconds(state_t, None, max_time, t_res);
+
+                    // discard path if forbidden
+                    if time_used_next > max_time {
+                        continue; // try again with next-larger velocity
+                    }
+
+                    // round up time_used_next into bins
+                    let time_used_next_discretized = discretize_time(time_used_next, None, max_time, t_res);
+
+                    // add energy used on current section to energy used so far
+                    let energy_used_next = mat_e_used[[step, state_v, state_t]] + energy_used(s, mom, vehicle.rec_eff) / vehicle.rho_rot;
+
+                    // if current path to the reached state is optimal, replace parent of reached state by current path
+                    if energy_used_next < mat_e_used[[step+1, v_next_discretized, time_used_next_discretized]] {
+                        // set current path as new optimal parent
+                        mat_parents[[step+1, v_next_discretized, time_used_next_discretized]] = state_v * t_res + state_t; // calculate index of parent
+                        // set current used energy as new optimal used energy
+                        mat_e_used[[step+1, v_next_discretized, time_used_next_discretized]] = energy_used_next;
+                    }
+                }
+
+            }
+
+
+        }
+
     }
+
+    // ==== RETRIEVAL OF BEST PATH =============================
 
     println!("OUTPUT = {:?}", num_sections);
     0
