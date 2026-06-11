@@ -150,7 +150,7 @@ pub fn discretize_time(t: Time, min: Option<Time>, max: Time, num: usize) -> usi
     let stepsize = (max - min) / (num - 1) as PrefFloat;
     let bin = PrefFloat::from((t - min) / stepsize).ceil() as usize;
     
-    bin
+    std::cmp::min(bin, num - 1)
 }
 
 /// Translates time bin to corresponding Time value.
@@ -181,7 +181,7 @@ pub fn discretize_v(v: Velocity, min: Option<Velocity>, max: Velocity, num: usiz
     let stepsize = (max - min) / (num - 1) as PrefFloat;
     let bin = PrefFloat::from((v - min) / stepsize).floor() as usize;
 
-    bin
+    std::cmp::min(bin, num - 1)
 }
 
 /// Translates speed bin to corresponding Velocity.
@@ -296,6 +296,8 @@ pub fn dp_optim(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usize, 
     }
 
     // ==== RETRIEVAL OF BEST PATH =============================
+
+    // TODO: implement return of error if no path was found
 
     let (_, v_opt, t_opt) = mat_e_used.select(Axis(0), &[mat_e_used.shape()[0] - 1]).argmin().unwrap(); // TODO: Error handling instead of unwrap!
     let minimal_energy = mat_e_used[[mat_e_used.shape()[0] - 1, v_opt, t_opt]]; // mat_e_used.select(Axis(0), &[mat_e_used.shape()[0] - 1]).min().unwrap();

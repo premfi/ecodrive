@@ -57,15 +57,15 @@ fn main() {
     let route0 = Route {lengths: lengths.clone(), slopes: slopes.clone(), max_speeds: max_speeds.clone()};
 
     let route3_res8 = Route {lengths: vec![Length::new::<meter>(50.0); 40],
-                        slopes: vec![Ratio::new::<percent>(0.0); 40],
-                        max_speeds: vec![Velocity::new::<kilometer_per_hour>(100.0); 40]};
+                            slopes: vec![Ratio::new::<percent>(0.0); 40],
+                            max_speeds: vec![Velocity::new::<kilometer_per_hour>(100.0); 40]};
 
     println!("sleops={:?}", route0.slopes);
 
-    let max_time = Time::new::<second>(50.0);
-    let time_res = 500;
-    let v_res = 101;
-    println!("DP: {}", dp_optim(&route0, &car1, max_time, time_res, v_res));
+    let max_time = Time::new::<second>(200.0);
+    let time_res = 2000;
+    let v_res = 201;
+    println!("DP: {}", dp_optim(&route3_res8, &car1, max_time, time_res, v_res));
 
     let mut arr4 = Array3::from_shape_vec((3, 3, 3), (0..27).collect()).unwrap();
     arr4[[1, 0, 1]] = 15;
