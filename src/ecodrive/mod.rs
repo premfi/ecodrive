@@ -1,7 +1,9 @@
 use uom::si::{acceleration::meter_per_second_squared,
             available_energy::joule_per_kilogram,
-            velocity::meter_per_second,
-            time::second};
+            velocity::{meter_per_second, kilometer_per_hour},
+            time::second,
+            ratio::percent,
+            length::meter};
 use std::marker::PhantomData;
 use float_cmp::approx_eq;
 
@@ -28,8 +30,57 @@ use std::time;
 pub struct Route {
     pub lengths: Vec<Length>,
     pub slopes: Vec<Ratio>,
+    pub min_speeds: Vec<Velocity>,
     pub max_speeds: Vec<Velocity>, 
 
+}
+
+use serde::Deserialize;
+#[derive(Debug, Deserialize)]
+pub struct RouteSection {// TODO: maybe make it private and only call it in the load_route function
+    #[serde(rename = "length [m]")]
+    pub length_m: PrefFloat,
+
+    #[serde(rename = "slope [%]")]
+    pub slope_pct: PrefFloat,
+
+    #[serde(rename = "min_speed [km/h]")]
+    pub min_speed_kph: Option<PrefFloat>,
+
+    #[serde(rename = "max_speed [km/h]")]
+    pub max_speed_kph: PrefFloat,
+}
+
+pub fn load_route(path: &str) -> Result<Route, csv::Error> {
+    println!("Loading route from {}", path);
+
+    // initialize empty route
+    let mut route = Route {
+                        lengths: vec![],
+                        slopes: vec![],
+                        min_speeds: vec![],
+                        max_speeds: vec![]};
+
+    // parse csv file and add entries line by line
+    let mut reader = csv::ReaderBuilder::new().trim(csv::Trim::All).from_path(path)?;
+    for record in reader.deserialize() {
+        let section: RouteSection = record?;
+        
+        println!(
+            "s= {}, slope= {}, v_max= {}",
+            section.length_m,
+            section.slope_pct,
+            section.max_speed_kph,
+        );
+
+        // convert and add entries to route
+        route.lengths.push(Length::new::<meter>(section.length_m));
+        route.slopes.push(Ratio::new::<percent>(section.slope_pct));
+        route.min_speeds.push(Velocity::new::<kilometer_per_hour>(section.min_speed_kph.unwrap_or_default()));
+        route.max_speeds.push(Velocity::new::<kilometer_per_hour>(section.max_speed_kph));
+    }
+
+    Ok(route)
 }
 
 // fn e_kin(s, )
