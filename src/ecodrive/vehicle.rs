@@ -2,6 +2,8 @@ use crate::ecodrive::config::PrefFloat;
 use crate::ecodrive::config::uom_si_preffloat::{Mass, Area, MassDensity};
 use uom::typenum::{N1, Z0};
 
+use uom::si::{mass::kilogram, area::square_meter};
+
 use std::marker::PhantomData;
 
 use crate::ecodrive::constants::{RHO_AIR};
@@ -11,13 +13,43 @@ use crate::ecodrive::PerLength;
 /// 
 /// C parameter is calculated from mass, frontal_area and c_w. These fields can only be accessed 
 /// via their set/get methods to ensure a valid value of C parameter at all times.
+
+use serde::{Deserialize, Deserializer};
+
+fn deserialize_float_to_kg<'de, D>(d: D) -> Result<Mass, D::Error> where D: Deserializer<'de> {
+    let kilograms = PrefFloat::deserialize(d)?;
+    Ok(Mass::new::<kilogram>(kilograms))
+}
+
+fn deserialize_float_to_sqm<'de, D>(d: D) -> Result<Area, D::Error> where D: Deserializer<'de> {
+    let square_meters = PrefFloat::deserialize(d)?;
+    Ok(Area::new::<square_meter>(square_meters))
+}
+
+pub fn load_vehicles(path: &str) -> Result<Vec<Vehicle>, csv::Error> {
+    let mut vehicles: Vec<Vehicle> = vec![];
+    let mut reader = csv::ReaderBuilder::new().trim(csv::Trim::All).from_path(path)?;
+
+    for record in reader.deserialize() {
+        let mut vehicle: Vehicle = record?;
+        vehicle.update_c_param();
+        vehicles.push(vehicle);
+    }
+
+    Ok(vehicles)
+}
+
+#[derive(Clone, Debug, Deserialize)]
 pub struct Vehicle {
     pub roll_res_coeff: PrefFloat,  // rolling resistance coefficient
     pub rho_rot: PrefFloat,     // factor for equivalent mass of rotating parts
     pub rec_eff: PrefFloat,     // regenerative braking efficiency
+    #[serde(deserialize_with="deserialize_float_to_kg", alias="mass [kg]")]
     mass: Mass,                 // vehicle mass [kg]
+    #[serde(deserialize_with="deserialize_float_to_sqm", alias="frontal_area [m^2]")]
     frontal_area: Area,         // frontal area [m^2]
     c_w: PrefFloat,             // drag coefficient
+    #[serde(skip)]
     c_param: Option<PerLength>  // C parameter (mass-normalized air resistance prefactor) [1/m]. Automatically calculated.
 }
 

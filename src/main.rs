@@ -20,6 +20,18 @@ use float_cmp::approx_eq;
 
 use ndarray::{Array1, Array3};
 
+// fn load_vehicles(path: &str) -> Option<Vehicle> {
+//     let mut vehicles: Vec<Vehicle> = vec![];
+//     let mut reader = csv::ReaderBuilder::new().trim(csv::Trim::All).from_path(path).unwrap();
+
+//     for record in reader.deserialize() {
+//         let mut vehicle: Vehicle = record.unwrap();
+//         vehicle.update_c_param();
+//         println!("{:?}", vehicle);
+//         return Some(vehicle);
+//     }
+//     None
+// }
 
 fn main() {    
     println!("Hello, world!");
@@ -72,7 +84,12 @@ fn main() {
     arr4[[1, 0, 1]] = 15;
     arr4[[1, 2, 0]] = 18;
     let loaded_route = load_route("../route3.csv").unwrap();
-    println!("load_vehicles:\n{:?}", loaded_route.lengths);
+    println!("load_route:\n{:?}", loaded_route.lengths);
+    let vhcls = load_vehicles("../vehicle1.csv").unwrap();
+    let vhcl0 = &vhcls[0];
+    let vhcl1 = &vhcls[1];
+    println!("vhcl0.get_c_param()={:?}", vhcl0.get_c_param());
+    println!("vhcl1.get_c_param()={:?}", vhcl1.get_c_param());
 
     // use ndarray_stats::QuantileExt;
     // let max4 = arr4.select(ndarray::Axis(0), &[1]).map_axis(ndarray::Axis(2), |view| view.argmax().unwrap());

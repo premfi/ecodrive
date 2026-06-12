@@ -16,7 +16,7 @@ pub mod constants;
 use constants::{GRAVITY_OF_EARTH, RHO_AIR, GLOBAL_V_MAX, GLOBAL_MOM_MAX};
 
 mod vehicle;
-pub use vehicle::Vehicle;
+pub use vehicle::{Vehicle, load_vehicles};
 
 use uom::typenum::{N1, Z0};
 pub type PerLength = uom::si::Quantity<uom::si::ISQ<N1, Z0, Z0, Z0, Z0, Z0, Z0>,
@@ -37,17 +37,17 @@ pub struct Route {
 
 use serde::Deserialize;
 #[derive(Debug, Deserialize)]
-pub struct RouteSection {// TODO: maybe make it private and only call it in the load_route function
-    #[serde(rename = "length [m]")]
+struct RouteSection {
+    #[serde(alias = "length [m]")]
     pub length_m: PrefFloat,
 
-    #[serde(rename = "slope [%]")]
+    #[serde(alias = "slope [%]")]
     pub slope_pct: PrefFloat,
 
-    #[serde(rename = "min_speed [km/h]")]
+    #[serde(alias = "min_speed [km/h]")]
     pub min_speed_kph: Option<PrefFloat>,
 
-    #[serde(rename = "max_speed [km/h]")]
+    #[serde(alias = "max_speed [km/h]")]
     pub max_speed_kph: PrefFloat,
 }
 
