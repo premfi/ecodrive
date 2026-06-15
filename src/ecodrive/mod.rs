@@ -1,6 +1,6 @@
 use uom::si::{acceleration::meter_per_second_squared,
             available_energy::joule_per_kilogram,
-            velocity::{meter_per_second, kilometer_per_hour},
+            velocity::meter_per_second,
             time::second};
 use float_cmp::approx_eq;
 
@@ -18,6 +18,9 @@ pub use vehicle::{Vehicle, load_vehicles};
 mod route;
 pub use route::{Route, load_route};
 
+mod schedule;
+pub use schedule::DrivingSchedule;
+
 use uom::typenum::{N1, Z0};
 pub type PerLength = uom::si::Quantity<uom::si::ISQ<N1, Z0, Z0, Z0, Z0, Z0, Z0>,
                                             uom::si::SI<PrefFloat>, PrefFloat>; // [1/m]
@@ -25,49 +28,6 @@ pub type PerLength = uom::si::Quantity<uom::si::ISQ<N1, Z0, Z0, Z0, Z0, Z0, Z0>,
 use ndarray::{Array3, Axis};
 use ndarray_stats::QuantileExt;
 
-use serde::{Serialize, Serializer};
-
-fn serialize_time_to_s<S>(time: &Time, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
-    let seconds = time.get::<second>();
-    serializer.serialize_f64(seconds as f64)
-}
-
-fn serialize_velocity_to_kph<S>(velocity: &Velocity, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
-    let kilometers_per_hour = velocity.get::<kilometer_per_hour>();
-    serializer.serialize_f64(kilometers_per_hour as f64)
-}
-
-#[derive(Serialize)]
-struct DrivingScheduleRow {
-    #[serde(serialize_with="serialize_time_to_s", rename="time [s]")]
-    time: Time,
-    #[serde(serialize_with="serialize_velocity_to_kph", rename="speed [km/h]")]
-    speed: Velocity
-}
-
-pub struct DrivingSchedule {
-    pub times: Vec<Time>,
-    pub speeds: Vec<Velocity>,
-}
-
-impl DrivingSchedule {
-    pub fn save(&self, path: &str) -> Result<(), csv::Error> {
-        let path_csv = format!("{path}.csv");
-        println!("Saving DrivingSchedule to {}", path_csv);
-
-        let mut wtr = csv::Writer::from_path(path_csv)?; // TODO: create new file "path(1)" or find other way to handle this without aborting. Create necessary folder if it doesn't exist already
-
-        for (&t, &v) in self.times.iter().zip(self.speeds.iter()) {
-            let row = DrivingScheduleRow {time: t, speed: v};
-            println!("t={:?}, v={:?}", t, v);
-            wtr.serialize(row)?;
-        }
-
-        wtr.flush()?;
-
-        Ok(())
-    }
-}
 
 // fn e_kin(s, )
 
