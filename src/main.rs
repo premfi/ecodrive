@@ -4,7 +4,12 @@ use ecodrive::*;
 /* TODO:
     x put constants in own module
     x maybe put settings (like f64/f32) in own module, e.g. use uom::si::f64 as uom_si_preffloat; . Then in e.g. vehicle: use uom_si_preffloat::{Mass, Area};
-    o re-export everything from ecodrive, so that only ecodrive needs to be added in main.rs
+    x re-export everything from ecodrive, so that only ecodrive needs to be added in main.rs
+    o move route related definitions and functions into route.rs
+    o create Schedule struct in mod.rs to hold result of dp_optim()
+    o add serialization support for Schedule
+    o plot and check result of dp_optim() on route3_res8
+    o add splitting function for routes or repeats/splits/etc. argument to load_route()
 */
 
 use config::uom_si_preffloat::{Mass, Area, Length, Ratio, Velocity, Acceleration, AvailableEnergy, Time};
