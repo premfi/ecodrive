@@ -1,6 +1,6 @@
 use uom::si::{acceleration::meter_per_second_squared,
             available_energy::joule_per_kilogram,
-            velocity::meter_per_second,
+            velocity::{meter_per_second, kilometer_per_hour},
             time::second};
 use float_cmp::approx_eq;
 
@@ -25,7 +25,49 @@ pub type PerLength = uom::si::Quantity<uom::si::ISQ<N1, Z0, Z0, Z0, Z0, Z0, Z0>,
 use ndarray::{Array3, Axis};
 use ndarray_stats::QuantileExt;
 
-use std::time;
+use serde::{Serialize, Serializer};
+
+fn serialize_time_to_s<S>(time: &Time, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+    let seconds = time.get::<second>();
+    serializer.serialize_f64(seconds as f64)
+}
+
+fn serialize_velocity_to_kph<S>(velocity: &Velocity, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+    let kilometers_per_hour = velocity.get::<kilometer_per_hour>();
+    serializer.serialize_f64(kilometers_per_hour as f64)
+}
+
+#[derive(Serialize)]
+struct DrivingScheduleRow {
+    #[serde(serialize_with="serialize_time_to_s", rename="time [s]")]
+    time: Time,
+    #[serde(serialize_with="serialize_velocity_to_kph", rename="speed [km/h]")]
+    speed: Velocity
+}
+
+pub struct DrivingSchedule {
+    pub times: Vec<Time>,
+    pub speeds: Vec<Velocity>,
+}
+
+impl DrivingSchedule {
+    pub fn save(&self, path: &str) -> Result<(), csv::Error> {
+        let path_csv = format!("{path}.csv");
+        println!("Saving DrivingSchedule to {}", path_csv);
+
+        let mut wtr = csv::Writer::from_path(path_csv)?; // TODO: create new file "path(1)" or find other way to handle this without aborting. Create necessary folder if it doesn't exist already
+
+        for (&t, &v) in self.times.iter().zip(self.speeds.iter()) {
+            let row = DrivingScheduleRow {time: t, speed: v};
+            println!("t={:?}, v={:?}", t, v);
+            wtr.serialize(row)?;
+        }
+
+        wtr.flush()?;
+
+        Ok(())
+    }
+}
 
 // fn e_kin(s, )
 
@@ -188,7 +230,7 @@ pub fn v_bin_to_mps(bin: usize, min: Option<Velocity>, max: Velocity, num: usize
 }
 
 pub fn dp_optim(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usize, v_res: usize) -> i16 {
-    let start_time_dp = time::Instant::now();
+    let start_time_dp = std::time::Instant::now();
     println!("DP called!");
     // TODO: check that no max_speed is larger than GLOBAL_V_MAX, or at least check that it will be clamped automatically by discretize_v
     // maybe don't throw an error in this case, but print that it will be clamped to GLOBAL_V_MAX and do that
@@ -298,6 +340,8 @@ pub fn dp_optim(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usize, 
     let minimal_energy = mat_e_used[[mat_e_used.shape()[0] - 1, v_opt, t_opt]]; // mat_e_used.select(Axis(0), &[mat_e_used.shape()[0] - 1]).min().unwrap();
     println!("\nv_opt={:?}, t_opt={:?}", v_opt, t_opt);
     println!("minimal_energy= {:?}", minimal_energy);
+
+    // TODO: backtrack through optimal path (using parents) and save to Schedule that will be returned. Schedule should be initialized with with_capacity()
 
     let elapsed_time = start_time_dp.elapsed();
     println!("Running dp_optim() took {} ms", elapsed_time.as_millis());

@@ -5,11 +5,12 @@ use ecodrive::*;
     x put constants in own module
     x maybe put settings (like f64/f32) in own module, e.g. use uom::si::f64 as uom_si_preffloat; . Then in e.g. vehicle: use uom_si_preffloat::{Mass, Area};
     x re-export everything from ecodrive, so that only ecodrive needs to be added in main.rs
-    o move route related definitions and functions into route.rs
+    x move route related definitions and functions into route.rs
     o create Schedule struct in mod.rs to hold result of dp_optim()
     o add serialization support for Schedule
     o plot and check result of dp_optim() on route3_res8
     o add splitting function for routes or repeats/splits/etc. argument to load_route()
+    o maybe add function that takes three paths: route, vehicles and returned schedule(s) and max_time, t_res, v_res that automatically calculates all of them
 */
 
 use config::uom_si_preffloat::{Mass, Area, Length, Ratio, Velocity, Time};
@@ -35,7 +36,7 @@ use ndarray::Array3;
 //     None
 // }
 
-fn main() {    
+fn main() -> Result<(), std::io::Error> {    
     println!("Hello, world!");
 
     /* TODO: Instead of manually defining vehicles, they may be imported from a .csv file, stored in a list, and then executed one by one */
@@ -133,6 +134,44 @@ fn main() {
     let arr3 = 3.0 * arr2 / arr1;
     // println!("{:?}", arr3);
 
+    use serde::Serialize;
+
+    #[derive(Serialize)]
+    struct Record<'a> {
+        name: &'a str,
+        place: &'a str,
+        id: u64,
+    }
+
+    // #[derive(Serialize)]
+    // struct TestStruct {
+    //     vec1: Vec<i32>,
+    //     vec2: Vec<f32>,
+    // }
+
+    let mut wtr = csv::Writer::from_writer(std::io::stdout());
+
+    let rec1 = Record { name: "Mark", place: "Melbourne", id: 56};
+    let rec2 = Record { name: "Ashley", place: "Sydney", id: 64};
+    let rec3 = Record { name: "Akshat", place: "Delhi", id: 98};
+    // let rec4 = TestStruct {vec1: vec![0, 1, 2, 3, 4],
+    //                        vec2: vec![0.0, 0.1, 0.2, 0.3, 0.4]};
+
+    wtr.serialize(rec1)?;
+    wtr.serialize(rec2)?;
+    wtr.serialize(rec3)?;
+    // wtr.serialize(rec4)?;
+
+    wtr.flush()?;
+
+    let sched = DrivingSchedule {times: vec![Time::new::<second>(1.1), Time::new::<second>(2.2), Time::new::<second>(3.3)],
+                                speeds: vec![Velocity::new::<kilometer_per_hour>(15.0), Velocity::new::<kilometer_per_hour>(30.0), Velocity::new::<kilometer_per_hour>(20.0)]};
+
+    let saved_res = sched.save("blablub_path.csv");
+    println!("{saved_res:?}");
+
+    println!("{:?}", sched.times[2]);
+
     // let v_arr1 = Array1::from_vec(vec![Velocity::new::<meter_per_second>(1.), Velocity::new::<meter_per_second>(2.), Velocity::new::<meter_per_second>(3.)]);
     // let v_arr2 = Array1::from_vec(vec![Velocity::new::<meter_per_second>(2.), Velocity::new::<meter_per_second>(2.), Velocity::new::<meter_per_second>(4.)]);
 
@@ -179,5 +218,5 @@ fn main() {
     
     println!("v = {:?}, v disc = {:?}, v rest = {:?}", test_velocity, v_discrete, v_restored);
     */
-
+    Ok(())
 }
