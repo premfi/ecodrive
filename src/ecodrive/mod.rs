@@ -1,19 +1,16 @@
 use uom::si::{acceleration::meter_per_second_squared,
             available_energy::joule_per_kilogram,
-            velocity::{meter_per_second, kilometer_per_hour},
-            time::second,
-            ratio::percent,
-            length::meter};
-use std::marker::PhantomData;
+            velocity::meter_per_second,
+            time::second};
 use float_cmp::approx_eq;
 
 pub mod config;
 use config::PrefFloat;
-use config::uom_si_preffloat::{Mass, Area, Acceleration, MassDensity, Length, Velocity, Ratio, AvailableEnergy, Time};
+use config::uom_si_preffloat::{Acceleration, Length, Velocity, Ratio, AvailableEnergy, Time};
 use config::floats;
 
 pub mod constants;
-use constants::{GRAVITY_OF_EARTH, RHO_AIR, GLOBAL_V_MAX, GLOBAL_MOM_MAX};
+use constants::{GRAVITY_OF_EARTH, GLOBAL_V_MAX, GLOBAL_MOM_MAX};
 
 mod vehicle;
 pub use vehicle::{Vehicle, load_vehicles};

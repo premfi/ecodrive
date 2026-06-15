@@ -12,18 +12,15 @@ use ecodrive::*;
     o add splitting function for routes or repeats/splits/etc. argument to load_route()
 */
 
-use config::uom_si_preffloat::{Mass, Area, Length, Ratio, Velocity, Acceleration, AvailableEnergy, Time};
+use config::uom_si_preffloat::{Mass, Area, Length, Ratio, Velocity, Time};
 use uom::si::{mass::kilogram,
             area::square_meter, 
             length::meter, 
             ratio::percent, 
-            velocity::{meter_per_second, kilometer_per_hour}, 
-            acceleration::meter_per_second_squared, 
-            available_energy::joule_per_kilogram,
+            velocity::kilometer_per_hour,
             time::second};
-use float_cmp::approx_eq;
 
-use ndarray::{Array1, Array3};
+use ndarray::Array3;
 
 // fn load_vehicles(path: &str) -> Option<Vehicle> {
 //     let mut vehicles: Vec<Vehicle> = vec![];

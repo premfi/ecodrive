@@ -1,10 +1,7 @@
 use crate::ecodrive::config::PrefFloat;
-use crate::ecodrive::config::uom_si_preffloat::{Mass, Area, MassDensity};
-use uom::typenum::{N1, Z0};
+use crate::ecodrive::config::uom_si_preffloat::{Mass, Area};
 
 use uom::si::{mass::kilogram, area::square_meter};
-
-use std::marker::PhantomData;
 
 use crate::ecodrive::constants::{RHO_AIR};
 use crate::ecodrive::PerLength;
