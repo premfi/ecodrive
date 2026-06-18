@@ -210,7 +210,7 @@ pub fn v_bin_to_mps(bin: usize, min: Option<Velocity>, max: Velocity, num: usize
 
 pub fn dp_optim(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usize, v_res: usize) -> Result<(AvailableEnergy, DrivingSchedule), DPError> {
     let start_time_dp = std::time::Instant::now();
-    println!("DP called!");
+    println!("dp_optim: starting optimization...");
     // TODO: check that no max_speed is larger than GLOBAL_V_MAX, or at least check that it will be clamped automatically by discretize_v
     // maybe don't throw an error in this case, but print that it will be clamped to GLOBAL_V_MAX and do that
 
@@ -354,15 +354,6 @@ pub fn dp_optim(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usize, 
         v_opt_curr = parent_flat / t_res; // integer division, truncating decimal part
         t_opt_curr = parent_flat % t_res;
     }
-
-    // println!("Optimal schedule:");
-    // println!("times, speeds");
-    // let sig_dits = 9;
-    // for (t, v) in optimal_schedule.times.iter().zip(optimal_schedule.speeds.iter()) {
-    //     println!("{:sig_dits$.3}, {:sig_dits$.3}", t.into_format_args(second, uom::fmt::DisplayStyle::Abbreviation), v.into_format_args(kilometer_per_hour, uom::fmt::DisplayStyle::Abbreviation));
-    // }
-    // println!("optimal schedule: {:?}", optimal_schedule);
-    optimal_schedule.save("route0_result"); // TODO: put optimal_schedule as return value instead and save it manually by call of .save() in main()
 
     let elapsed_time = start_time_dp.elapsed();
     println!("Running dp_optim() took {} ms", elapsed_time.as_millis());
