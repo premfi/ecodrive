@@ -12,13 +12,14 @@ use ecodrive::*;
     x replace const::E::powf() by .exp()
     o implement ImpossibleTaskError to return if given time is too short
     x implement NoPathFoundError
-    o retrieve best path in dp_optim() and return it
+    x retrieve best path in dp_optim() and return it
     o start with lowest reachable velocity
     o add argument for initial velocity. Set another entry (according to discretize(v0)) of mat_parents and mat_e_used to 0 for this
     o introduce minimum velocity (can also help optimization performance)
     o try out clever splitting of route into sections such that maximum acceleration can be used
     o add splitting function for routes or repeats/splits/etc. argument to load_route()
     o write inverse optimization with fixed energy budget and time to be optimized
+    o add function to calculate used energy and actual time from given DrivingSchedule
     o add utils functions, e.g. max_s() are not used but helpful for understanding
     o clean up plotting functions and design interface for loading schedules from file to python
     o maybe add function that takes three paths: route, vehicles and returned schedule(s) and max_time, t_res, v_res that automatically calculates all of them
@@ -106,7 +107,7 @@ fn main() -> Result<(), std::io::Error> {
     println!("time_used_next: {:?}", time_used_next);
 
     let optimal_schedule_result = dp_optim(&route0, &car1, max_time, time_res, v_res);
-    println!("DP: {:?}", optimal_schedule_result.unwrap());
+    println!("DP:\n{}", optimal_schedule_result.unwrap().1);
     println!("time value: {:<10.4}", (max_time / 3.).into_format_args(second, uom::fmt::DisplayStyle::Abbreviation));
     println!("nice time value: {:#?}", max_time);
 
@@ -125,6 +126,9 @@ fn main() -> Result<(), std::io::Error> {
     let vhcl1 = &vhcls[1];
     println!("vhcl0.get_c_param()={:?}", vhcl0.get_c_param());
     println!("vhcl1.get_c_param()={:?}", vhcl1.get_c_param());
+
+    let new_sched = DrivingSchedule{times: vec![Time::new::<second>(15.7); 3], speeds: vec![Velocity::new::<meter_per_second>(35.2); 4]};
+    println!("{}", new_sched);
 
     // use ndarray_stats::QuantileExt;
     // let max4 = arr4.select(ndarray::Axis(0), &[1]).map_axis(ndarray::Axis(2), |view| view.argmax().unwrap());

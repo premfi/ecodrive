@@ -39,7 +39,7 @@ impl std::error::Error for DPError {}
 impl std::fmt::Display for DPError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match *self {
-            DPError::ImpossibleTask => write!(f, "impossible to solve task with given parameters"),
+            DPError::ImpossibleTask => write!(f, "task impossible to solve with given parameters"),
             DPError::NoPathFound => write!(f, "no valid path found"),
         }
     }
@@ -355,12 +355,12 @@ pub fn dp_optim(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usize, 
         t_opt_curr = parent_flat % t_res;
     }
 
-    println!("Optimal schedule:");
-    println!("times, speeds");
-    let sig_dits = 9;
-    for (t, v) in optimal_schedule.times.iter().zip(optimal_schedule.speeds.iter()) {
-        println!("{:sig_dits$.3}, {:sig_dits$.3}", t.into_format_args(second, uom::fmt::DisplayStyle::Abbreviation), v.into_format_args(kilometer_per_hour, uom::fmt::DisplayStyle::Abbreviation));
-    }
+    // println!("Optimal schedule:");
+    // println!("times, speeds");
+    // let sig_dits = 9;
+    // for (t, v) in optimal_schedule.times.iter().zip(optimal_schedule.speeds.iter()) {
+    //     println!("{:sig_dits$.3}, {:sig_dits$.3}", t.into_format_args(second, uom::fmt::DisplayStyle::Abbreviation), v.into_format_args(kilometer_per_hour, uom::fmt::DisplayStyle::Abbreviation));
+    // }
     // println!("optimal schedule: {:?}", optimal_schedule);
     optimal_schedule.save("route0_result"); // TODO: put optimal_schedule as return value instead and save it manually by call of .save() in main()
 
