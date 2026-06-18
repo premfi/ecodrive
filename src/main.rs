@@ -6,10 +6,21 @@ use ecodrive::*;
     x maybe put settings (like f64/f32) in own module, e.g. use uom::si::f64 as uom_si_preffloat; . Then in e.g. vehicle: use uom_si_preffloat::{Mass, Area};
     x re-export everything from ecodrive, so that only ecodrive needs to be added in main.rs
     x move route related definitions and functions into route.rs
-    o create Schedule struct in mod.rs to hold result of dp_optim()
-    o add serialization support for Schedule
-    o plot and check result of dp_optim() on route3_res8
+    x create Schedule struct in mod.rs to hold result of dp_optim()
+    x add serialization support for Schedule
+    x plot and check result of dp_optim() on route3_res8
+    x replace const::E::powf() by .exp()
+    o implement ImpossibleTaskError to return if given time is too short
+    x implement NoPathFoundError
+    o retrieve best path in dp_optim() and return it
+    o start with lowest reachable velocity
+    o add argument for initial velocity. Set another entry (according to discretize(v0)) of mat_parents and mat_e_used to 0 for this
+    o introduce minimum velocity (can also help optimization performance)
+    o try out clever splitting of route into sections such that maximum acceleration can be used
     o add splitting function for routes or repeats/splits/etc. argument to load_route()
+    o write inverse optimization with fixed energy budget and time to be optimized
+    o add utils functions, e.g. max_s() are not used but helpful for understanding
+    o clean up plotting functions and design interface for loading schedules from file to python
     o maybe add function that takes three paths: route, vehicles and returned schedule(s) and max_time, t_res, v_res that automatically calculates all of them
 */
 
@@ -18,7 +29,7 @@ use uom::si::{mass::kilogram,
             area::square_meter, 
             length::meter, 
             ratio::percent, 
-            velocity::kilometer_per_hour,
+            velocity::{kilometer_per_hour, meter_per_second},
             time::second};
 
 use ndarray::Array3;
@@ -64,10 +75,8 @@ fn main() -> Result<(), std::io::Error> {
                         Velocity::new::<kilometer_per_hour>(130.0),
                         Velocity::new::<kilometer_per_hour>(130.0)];
     
-    let rat = Ratio::new::<percent>(15.0);
-
-    println!("rat= {}", rat.get::<uom::si::ratio::ratio>() + 0.5);
-    println!("route_res= {:?}", route_res(slopes[1], car1.roll_res_coeff));
+    let route_res = route_res(slopes[1], car1.roll_res_coeff);
+    println!("route_res= {:?}", route_res);
 
     let route0 = Route {lengths: lengths.clone(), slopes: slopes.clone(), min_speeds: vec![Velocity::new::<kilometer_per_hour>(0.0); 4], max_speeds: max_speeds.clone()};
 
@@ -75,19 +84,42 @@ fn main() -> Result<(), std::io::Error> {
                             slopes: vec![Ratio::new::<percent>(0.0); 40],
                             min_speeds: vec![Velocity::new::<kilometer_per_hour>(0.0); 40],
                             max_speeds: vec![Velocity::new::<kilometer_per_hour>(100.0); 40]};
-
-    println!("sleops={:?}", route0.slopes);
-
+    
     let max_time = Time::new::<second>(200.0);
     let time_res = 2000;
     let v_res = 201;
-    // println!("DP: {}", dp_optim(&route0, &car1, max_time, time_res, v_res));
 
-    let mut arr4 = Array3::from_shape_vec((3, 3, 3), (0..27).collect()).unwrap();
-    arr4[[1, 0, 1]] = 15;
-    arr4[[1, 2, 0]] = 18;
-    let loaded_route = load_route("../route3.csv").unwrap();
-    println!("load_route:\n{:?}", loaded_route.lengths);
+    let ekin_stuck = v_to_ekin(Velocity::new::<meter_per_second>(0.75));
+    println!("ekin_stuck: {:?}", ekin_stuck);
+    let a_param_retrieved = retrieve_a_param(Length::new::<meter>(50.0), ekin_stuck, ekin_stuck, car1.get_c_param());
+    println!("a_param_retrieved: {:?}", a_param_retrieved);
+
+    let mom = a_param_retrieved + route_res;
+    println!("mom: {:?}", mom);
+
+    let state_t_in_seconds = time_bin_to_seconds(971, None, max_time, time_res);
+    println!("state_t_in_seconds: {:?}", state_t_in_seconds);
+    let dt = delta_t(Length::new::<meter>(50.0), a_param_retrieved, car1.get_c_param(), ekin_stuck);
+    println!("dt: {:?}", dt);
+    let time_used_next = dt + state_t_in_seconds;
+
+    println!("time_used_next: {:?}", time_used_next);
+
+    let optimal_schedule_result = dp_optim(&route0, &car1, max_time, time_res, v_res);
+    println!("DP: {:?}", optimal_schedule_result.unwrap());
+    println!("time value: {:<10.4}", (max_time / 3.).into_format_args(second, uom::fmt::DisplayStyle::Abbreviation));
+    println!("nice time value: {:#?}", max_time);
+
+    // for t in 960..=980 {
+    //     let t_sec = time_bin_to_seconds(t, None, max_time, time_res);
+    //     println!("t={}, t_sec={:?}", t, t_sec);
+    // }
+
+    // let mut arr4 = Array3::from_shape_vec((3, 3, 3), (0..27).collect()).unwrap();
+    // arr4[[1, 0, 1]] = 15;
+    // arr4[[1, 2, 0]] = 18;
+    // let loaded_route = load_route("../route3.csv").unwrap();
+    // println!("load_route:\n{:?}", loaded_route.lengths);
     let vhcls = load_vehicles("../vehicle1.csv").unwrap();
     let vhcl0 = &vhcls[0];
     let vhcl1 = &vhcls[1];
@@ -112,7 +144,7 @@ fn main() -> Result<(), std::io::Error> {
     // let res = el_wise(<&i64 as std::ops::Add>::add, &vec![&101_i64], &vec![&3_i64]);
     // println!("el_wise={:?}", res);
 
-    println!("1 + 2 = {:?}", &1 + &2);
+    // println!("1 + 2 = {:?}", &1 + &2);
 
     // let div: Vec<Time> = std::iter::zip(lengths, max_speeds).map(|(s, v)| {s / v}).collect();
     // // for d in div {
@@ -121,27 +153,27 @@ fn main() -> Result<(), std::io::Error> {
     // println!("{:?}", div);
     // println!("{:?}", div.into_iter().sum());
 
-    let sum = std::iter::zip(lengths, max_speeds).map(|(s, v)| {s / v}).sum::<Time>();
-    println!("sum={:?}", sum);
+    // let sum = std::iter::zip(lengths, max_speeds).map(|(s, v)| {s / v}).sum::<Time>();
+    // println!("sum={:?}", sum);
 
 
-    let mut arr1 = ndarray::Array3::<f64>::zeros((3, 4, 5));
-    arr1.fill(f64::INFINITY);
-    // println!("{:?}", arr1);
-    arr1[[2, 2, 2]] = 15.5;
+    // let mut arr1 = ndarray::Array3::<f64>::zeros((3, 4, 5));
+    // arr1.fill(f64::INFINITY);
+    // // println!("{:?}", arr1);
+    // arr1[[2, 2, 2]] = 15.5;
 
-    let arr2 = ndarray::Array3::<f64>::ones((3, 4, 5));
-    let arr3 = 3.0 * arr2 / arr1;
-    // println!("{:?}", arr3);
+    // let arr2 = ndarray::Array3::<f64>::ones((3, 4, 5));
+    // let arr3 = 3.0 * arr2 / arr1;
+    // // println!("{:?}", arr3);
 
-    use serde::Serialize;
+    // use serde::Serialize;
 
-    #[derive(Serialize)]
-    struct Record<'a> {
-        name: &'a str,
-        place: &'a str,
-        id: u64,
-    }
+    // #[derive(Serialize)]
+    // struct Record<'a> {
+    //     name: &'a str,
+    //     place: &'a str,
+    //     id: u64,
+    // }
 
     // #[derive(Serialize)]
     // struct TestStruct {
@@ -149,28 +181,28 @@ fn main() -> Result<(), std::io::Error> {
     //     vec2: Vec<f32>,
     // }
 
-    let mut wtr = csv::Writer::from_writer(std::io::stdout());
+    // let mut wtr = csv::Writer::from_writer(std::io::stdout());
 
-    let rec1 = Record { name: "Mark", place: "Melbourne", id: 56};
-    let rec2 = Record { name: "Ashley", place: "Sydney", id: 64};
-    let rec3 = Record { name: "Akshat", place: "Delhi", id: 98};
-    // let rec4 = TestStruct {vec1: vec![0, 1, 2, 3, 4],
-    //                        vec2: vec![0.0, 0.1, 0.2, 0.3, 0.4]};
+    // let rec1 = Record { name: "Mark", place: "Melbourne", id: 56};
+    // let rec2 = Record { name: "Ashley", place: "Sydney", id: 64};
+    // let rec3 = Record { name: "Akshat", place: "Delhi", id: 98};
+    // // let rec4 = TestStruct {vec1: vec![0, 1, 2, 3, 4],
+    // //                        vec2: vec![0.0, 0.1, 0.2, 0.3, 0.4]};
 
-    wtr.serialize(rec1)?;
-    wtr.serialize(rec2)?;
-    wtr.serialize(rec3)?;
-    // wtr.serialize(rec4)?;
+    // wtr.serialize(rec1)?;
+    // wtr.serialize(rec2)?;
+    // wtr.serialize(rec3)?;
+    // // wtr.serialize(rec4)?;
 
-    wtr.flush()?;
+    // wtr.flush()?;
 
-    let sched = DrivingSchedule {times: vec![Time::new::<second>(1.1), Time::new::<second>(2.2), Time::new::<second>(3.3)],
-                                speeds: vec![Velocity::new::<kilometer_per_hour>(15.0), Velocity::new::<kilometer_per_hour>(30.0), Velocity::new::<kilometer_per_hour>(20.0)]};
+    // let sched = DrivingSchedule {times: vec![Time::new::<second>(1.1), Time::new::<second>(2.2), Time::new::<second>(3.3)],
+    //                             speeds: vec![Velocity::new::<kilometer_per_hour>(15.0), Velocity::new::<kilometer_per_hour>(30.0), Velocity::new::<kilometer_per_hour>(20.0)]};
 
-    let saved_res = sched.save("blablub_path.csv");
-    println!("{saved_res:?}");
+    // let saved_res = sched.save("blablub_path.csv");
+    // println!("{saved_res:?}");
 
-    println!("{:?}", sched.times[2]);
+    // println!("{:?}", sched.times[2]);
 
     // let v_arr1 = Array1::from_vec(vec![Velocity::new::<meter_per_second>(1.), Velocity::new::<meter_per_second>(2.), Velocity::new::<meter_per_second>(3.)]);
     // let v_arr2 = Array1::from_vec(vec![Velocity::new::<meter_per_second>(2.), Velocity::new::<meter_per_second>(2.), Velocity::new::<meter_per_second>(4.)]);

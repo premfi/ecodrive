@@ -1,6 +1,6 @@
 use uom::si::{acceleration::meter_per_second_squared,
             available_energy::joule_per_kilogram,
-            velocity::meter_per_second,
+            velocity::{meter_per_second, kilometer_per_hour},
             time::second};
 use float_cmp::approx_eq;
 
@@ -28,6 +28,22 @@ pub type PerLength = uom::si::Quantity<uom::si::ISQ<N1, Z0, Z0, Z0, Z0, Z0, Z0>,
 use ndarray::{Array3, Axis};
 use ndarray_stats::QuantileExt;
 
+#[derive(Debug)]
+pub enum DPError {
+    ImpossibleTask,
+    NoPathFound,
+}
+
+impl std::error::Error for DPError {}
+
+impl std::fmt::Display for DPError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match *self {
+            DPError::ImpossibleTask => write!(f, "impossible to solve task with given parameters"),
+            DPError::NoPathFound => write!(f, "no valid path found"),
+        }
+    }
+}
 
 // fn e_kin(s, )
 
@@ -47,7 +63,7 @@ pub fn route_res(slope: Ratio, roll_res_coeff: PrefFloat) -> Acceleration /* [N/
 
 /// Calculates A parameter necessary to reach `ekin_s` after length `s` when starting with `ekin_0`.
 pub fn retrieve_a_param(s: Length, ekin_0: AvailableEnergy, ekin_s: AvailableEnergy, c_param: PerLength) -> Acceleration /* [N/kg] */ {
-    let a_param = c_param * (ekin_s - ekin_0 * floats::consts::E.powf((-c_param * s).into())) / (1.0 - floats::consts::E.powf((-c_param * s).into()));
+    let a_param = c_param * (ekin_s - ekin_0 * PrefFloat::from((-c_param * s).exp())) / (1.0 - PrefFloat::from((-c_param * s).exp()));
     a_param
 }
 
@@ -72,13 +88,15 @@ pub fn delta_t(s: Length, a_param: Acceleration, c_param: PerLength, ekin_0: Ava
     // positive A
     else if a_param > Acceleration::new::<meter_per_second_squared>(0.0) {
         // constant speed
-        if approx_eq!(PrefFloat, ((c_param / a_param) * ekin_0).into(), 1.0, ulps=2) {
+        if approx_eq!(PrefFloat, ((c_param / a_param) * ekin_0).into(), 1.0, epsilon=0.02, ulps=2) {// TODO: CHECK EPSILON AND ULPS GOOD VALUES
+            // println!("case 2.1");
             return s / (2.0 * ekin_0).sqrt();
         } 
         // higher or lower end velocity, but always > 0
         else {
             // approximation for numerical stability
             if PrefFloat::from(s * c_param) > 12.0 {
+                println!("approximation used!");
                 let max_stable_s = 12.0 / c_param;
                 let y_axis_offset = delta_t(max_stable_s, a_param, c_param, ekin_0);
                 let m = c_param / (2.0 * a_param * c_param).sqrt();
@@ -86,6 +104,7 @@ pub fn delta_t(s: Length, a_param: Acceleration, c_param: PerLength, ekin_0: Ava
             } 
             // actual formula
             else {
+                // println!("case 2.2");
                 let x: PrefFloat = (1.0 + (PrefFloat::from((c_param / a_param) * ekin_0) - 1.0) * PrefFloat::from((-c_param * s).exp())).sqrt();
                 let y: PrefFloat = ((c_param / a_param) * ekin_0).sqrt().into();
                 return PrefFloat::sqrt(2.0) * ((x - y) / (1.0 - x * y)).atanh() / (a_param * c_param).sqrt();
@@ -105,7 +124,7 @@ pub fn delta_t(s: Length, a_param: Acceleration, c_param: PerLength, ekin_0: Ava
         // end speed larger than zero
         else if (-c_param * ekin_0 / (PrefFloat::from(c_param * s).exp() - 1.0)) < a_param {
             // println!("case 3.2");
-            let x: PrefFloat = (-1.0 - (PrefFloat::from((c_param / a_param) * ekin_0) - 1.0) * floats::consts::E.powf((-c_param * s).into())).sqrt();
+            let x: PrefFloat = (-1.0 - (PrefFloat::from((c_param / a_param) * ekin_0) - 1.0) * PrefFloat::from((-c_param * s).exp())).sqrt();
             let y: PrefFloat = (-(c_param / a_param) * ekin_0).sqrt().into();
             return (2.0 / (-a_param * c_param)).sqrt() * ((y - x) / (1.0 + x * y)).atan();
         } 
@@ -189,11 +208,13 @@ pub fn v_bin_to_mps(bin: usize, min: Option<Velocity>, max: Velocity, num: usize
     stepsize * (bin as PrefFloat) + min
 }
 
-pub fn dp_optim(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usize, v_res: usize) -> i16 {
+pub fn dp_optim(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usize, v_res: usize) -> Result<(AvailableEnergy, DrivingSchedule), DPError> {
     let start_time_dp = std::time::Instant::now();
     println!("DP called!");
     // TODO: check that no max_speed is larger than GLOBAL_V_MAX, or at least check that it will be clamped automatically by discretize_v
     // maybe don't throw an error in this case, but print that it will be clamped to GLOBAL_V_MAX and do that
+
+    // TODO: return ImpossibleTask if its impossible to achieve route in the given time
 
     // ==== PRELIMINARIES AND DEFINITIONS =================
 
@@ -292,19 +313,59 @@ pub fn dp_optim(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usize, 
         println!("{}% finished", (step + 1) * 100 / num_sections);
     }
 
-    // ==== RETRIEVAL OF BEST PATH =============================
+    // ==== RETRIEVAL OF BEST END STATE ==========================
 
-    // TODO: implement return of error if no path was found
-
-    let (_, v_opt, t_opt) = mat_e_used.select(Axis(0), &[mat_e_used.shape()[0] - 1]).argmin().unwrap(); // TODO: Error handling instead of unwrap!
-    let minimal_energy = mat_e_used[[mat_e_used.shape()[0] - 1, v_opt, t_opt]]; // mat_e_used.select(Axis(0), &[mat_e_used.shape()[0] - 1]).min().unwrap();
-    println!("\nv_opt={:?}, t_opt={:?}", v_opt, t_opt);
-    println!("minimal_energy= {:?}", minimal_energy);
+    let (_, v_opt_end, t_opt_end) = mat_e_used.select(Axis(0), &[mat_e_used.shape()[0] - 1]).argmin().unwrap(); // TODO: Error handling instead of unwrap!
+    let minimal_energy = mat_e_used[[mat_e_used.shape()[0] - 1, v_opt_end, t_opt_end]]; // mat_e_used.select(Axis(0), &[mat_e_used.shape()[0] - 1]).min().unwrap();
+    
+    if !(minimal_energy < AvailableEnergy::new::<joule_per_kilogram>(PrefFloat::INFINITY)) {
+        return Err(DPError::NoPathFound);
+    }
+    println!("\nv_opt_end={:?}, t_opt_end={:?}", v_opt_end, t_opt_end);
+    println!("minimal_energy= {:?}", minimal_energy);// * vehicle.get_mass()); // TODO: calculate as kWh using vehicle.mass and print/return that instead
 
     // TODO: backtrack through optimal path (using parents) and save to Schedule that will be returned. Schedule should be initialized with with_capacity()
 
+    // ==== BACKTRACKING ALONG OPTIMAL PATH ======================
+
+    // initialize optimal schedule with Infinity
+    let mut optimal_schedule = DrivingSchedule {times: vec![Time::new::<second>(PrefFloat::INFINITY); num_sections + 1],
+                                                speeds: vec![Velocity::new::<meter_per_second>(PrefFloat::INFINITY); num_sections + 1]};
+
+    let mut parent_flat = parent_uninit; // will be overwritten before use
+
+    // optimal path ends in optimal state, so backtracking starts with it
+    let mut v_opt_curr = v_opt_end;
+    let mut t_opt_curr = t_opt_end;
+
+    println!("check if this is the minimal energy: {:?}", mat_e_used[[num_sections, v_opt_curr, t_opt_curr]]);
+    println!("parent of best end state: {:?}", mat_parents[[num_sections, v_opt_curr, t_opt_curr]]);
+    // backtrack along optimal path, starting at the end
+    for step in (0..=num_sections).rev() {
+        // save v and t of current step to optimal schedule
+        optimal_schedule.speeds[step] = v_bin_to_mps(v_opt_curr, None, GLOBAL_V_MAX, v_res);
+        optimal_schedule.times[step] = time_bin_to_seconds(t_opt_curr, None, max_time, t_res);
+
+        // get parent index of current state
+        parent_flat = mat_parents[[step, v_opt_curr, t_opt_curr]];
+        println!("parent_flat = {}", parent_flat);
+
+        // retrieve v and t state from parent index
+        v_opt_curr = parent_flat / t_res; // integer division, truncating decimal part
+        t_opt_curr = parent_flat % t_res;
+    }
+
+    println!("Optimal schedule:");
+    println!("times, speeds");
+    let sig_dits = 9;
+    for (t, v) in optimal_schedule.times.iter().zip(optimal_schedule.speeds.iter()) {
+        println!("{:sig_dits$.3}, {:sig_dits$.3}", t.into_format_args(second, uom::fmt::DisplayStyle::Abbreviation), v.into_format_args(kilometer_per_hour, uom::fmt::DisplayStyle::Abbreviation));
+    }
+    // println!("optimal schedule: {:?}", optimal_schedule);
+    optimal_schedule.save("route0_result"); // TODO: put optimal_schedule as return value instead and save it manually by call of .save() in main()
+
     let elapsed_time = start_time_dp.elapsed();
     println!("Running dp_optim() took {} ms", elapsed_time.as_millis());
-    println!("OUTPUT = {:?}", num_sections);
-    0
+
+    Ok((minimal_energy, optimal_schedule))
 }
