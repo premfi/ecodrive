@@ -35,19 +35,6 @@ use uom::si::{mass::kilogram,
 
 use ndarray::Array3;
 
-// fn load_vehicles(path: &str) -> Option<Vehicle> {
-//     let mut vehicles: Vec<Vehicle> = vec![];
-//     let mut reader = csv::ReaderBuilder::new().trim(csv::Trim::All).from_path(path).unwrap();
-
-//     for record in reader.deserialize() {
-//         let mut vehicle: Vehicle = record.unwrap();
-//         vehicle.update_c_param();
-//         println!("{:?}", vehicle);
-//         return Some(vehicle);
-//     }
-//     None
-// }
-
 fn main() -> Result<(), std::io::Error> {    
     println!("Hello, world!");
 

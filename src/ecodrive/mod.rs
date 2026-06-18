@@ -45,7 +45,9 @@ impl std::fmt::Display for DPError {
     }
 }
 
-// fn e_kin(s, )
+fn e_kin(s: Length, a_param: Acceleration, c_param: PerLength, ekin_0: AvailableEnergy) -> AvailableEnergy {
+    (a_param / c_param) + (ekin_0 - (a_param / c_param)) * (-c_param * s).exp()
+}
 
 /// Returns specific used energy when applying moment `mom` on length `s`.
 pub fn energy_used(s: Length, mom: Acceleration /* [N/kg] */, rec_eff: PrefFloat) -> AvailableEnergy /* [J/kg] */ {
