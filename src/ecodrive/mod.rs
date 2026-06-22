@@ -7,7 +7,7 @@ use float_cmp::approx_eq;
 use std::fmt::{Debug, Display};
 
 pub mod config;
-use config::PrefFloat;
+pub use config::PrefFloat;
 use config::uom_si_preffloat::{Acceleration, Length, Velocity, Ratio, AvailableEnergy, Time};
 use config::floats;
 
@@ -54,10 +54,10 @@ pub enum ValueError<T> {
 
 impl<T: Debug + Display + Copy> std::error::Error for ValueError<T> {}
 
-impl<T: Display + Copy> Display for ValueError<T> {
+impl<T: Debug + Copy> Display for ValueError<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match *self {
-            ValueError::NegativeValue(val) => write!(f, "negative value not allowed: {}", val),
+            ValueError::NegativeValue(val) => write!(f, "negative value not allowed: {:?}", val),
         }
     }
 }
@@ -240,8 +240,13 @@ pub fn dp_optim(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usize, 
     println!("dp_optim: starting optimization...");
     // TODO: check that no max_speed is larger than GLOBAL_V_MAX, or at least check that it will be clamped automatically by discretize_v
     // maybe don't throw an error in this case, but print that it will be clamped to GLOBAL_V_MAX and do that
+    // TODO: check that no min_speed is larger than max_speed
 
-    // TODO: return ImpossibleTask if its impossible to achieve route in the given time
+    // return ImpossibleTask if its impossible to traverse the route in the given time
+    let min_theor_time = route.lengths.iter().zip(route.max_speeds.iter()).fold(Time::new::<second>(0.0), |acc , (&s, &v_max)| acc + (s / v_max));
+    if min_theor_time > max_time {
+        return Err(DPError::ImpossibleTask);
+    }
 
     // ==== PRELIMINARIES AND DEFINITIONS =================
 

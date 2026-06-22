@@ -10,10 +10,10 @@ use ecodrive::*;
     x add serialization support for Schedule
     x plot and check result of dp_optim() on route3_res8
     x replace const::E::powf() by .exp()
-    o implement ImpossibleTaskError to return if given time is too short
+    x implement ImpossibleTaskError to return if given time is too short
     x implement NoPathFoundError
     x retrieve best path in dp_optim() and return it
-    o start with lowest reachable velocity
+    x start with lowest reachable velocity
     o add argument for initial velocity. Set another entry (according to discretize(v0)) of mat_parents and mat_e_used to 0 for this
     o introduce minimum velocity (can also help optimization performance)
     o try out clever splitting of route into sections such that maximum acceleration can be used
@@ -88,7 +88,7 @@ fn main() -> Result<(), std::io::Error> {
     println!("vhcl1.get_c_param()={:?}", vhcl1.get_c_param());
 
     println!("ekin_to_v: {:?}", ekin_to_v(AvailableEnergy::new::<joule_per_kilogram>(15.0)));
-    println!("ekin_to_v: {:?}", ekin_to_v(AvailableEnergy::new::<joule_per_kilogram>(-5.0)));
+    println!("ekin_to_v: {}", ekin_to_v(AvailableEnergy::new::<joule_per_kilogram>(-5.0)).unwrap_err());
 
     Ok(())
 }
