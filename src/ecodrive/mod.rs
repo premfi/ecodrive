@@ -235,7 +235,7 @@ pub fn v_bin_to_mps(bin: usize, min: Option<Velocity>, max: Velocity, num: usize
     stepsize * (bin as PrefFloat) + min
 }
 
-pub fn dp_optim(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usize, v_res: usize, v_0: Option<Velocity>) -> Result<(AvailableEnergy, DrivingSchedule), DPError> {
+pub fn dp_optim(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usize, v_res: usize, v_0: Option<Velocity>, v_end: Option<(Velocity, Velocity)>) -> Result<(AvailableEnergy, DrivingSchedule), DPError> {
     let start_time_dp = std::time::Instant::now();
     println!("dp_optim: starting optimization...");
     // TODO: check that no max_speed is larger than GLOBAL_V_MAX, or at least check that it will be clamped automatically by discretize_v
@@ -257,16 +257,14 @@ pub fn dp_optim(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usize, 
 
     let route_resistances: Vec<Acceleration> = route.slopes.iter().map(|&slope| route_res(slope, vehicle.roll_res_coeff)).collect();
     
-    let mut min_speeds_discretized: Vec<usize> = route.min_speeds.iter().map(|&min_speed| discretize_v(min_speed, None, GLOBAL_V_MAX, v_res)).collect();
+    // set default values for min/max allowed end speeds, if None were given
+    let (min_allowed_end_speed, max_allowed_end_speed) = v_end.unwrap_or((Velocity::new::<meter_per_second>(0.0), GLOBAL_V_MAX));
 
-    let min_allowed_end_speed = Velocity::new::<meter_per_second>(0.0); // TODO: make this an (optional) parameter together with max_allowed_end_speed. Default value: 0 mps. Make the parameter an Option<(Velocity, Velocity)>
+    let mut min_speeds_discretized: Vec<usize> = route.min_speeds.iter().map(|&min_speed| discretize_v(min_speed, None, GLOBAL_V_MAX, v_res)).collect();
     let min_allowed_end_speed_discretized = discretize_v(min_allowed_end_speed, None, GLOBAL_V_MAX, v_res);
     min_speeds_discretized.push(min_allowed_end_speed_discretized);
 
     let mut max_speeds_discretized: Vec<usize> = route.max_speeds.iter().map(|&max_speed| discretize_v(max_speed, None, GLOBAL_V_MAX, v_res)).collect();
-    
-    // ensure that vehicle (nearly) stops at the end
-    let max_allowed_end_speed = Velocity::new::<meter_per_second>(2.0); // TODO: make this an (optional) parameter together with min_allowed_end_speed. Default value: route.max_speeds[-1], should be more efficient to end on near 0 velocity anyway
     let max_allowed_end_speed_discretized = discretize_v(max_allowed_end_speed, None, GLOBAL_V_MAX, v_res);
     max_speeds_discretized.push(max_allowed_end_speed_discretized);
     

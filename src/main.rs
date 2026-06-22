@@ -66,7 +66,7 @@ fn main() -> Result<(), std::io::Error> {
     
     let route_res = route_res(slopes[1], car1.roll_res_coeff);
 
-    let route0 = Route {lengths: lengths.clone(), slopes: slopes.clone(), min_speeds: vec![Velocity::new::<kilometer_per_hour>(8.0); 4], max_speeds: max_speeds.clone()};
+    let route0 = Route {lengths: lengths.clone(), slopes: slopes.clone(), min_speeds: vec![Velocity::new::<kilometer_per_hour>(0.0); 4], max_speeds: max_speeds.clone()};
 
     let route3_res8 = Route {lengths: vec![Length::new::<meter>(50.0); 40],
                             slopes: vec![Ratio::new::<percent>(0.0); 40],
@@ -77,7 +77,7 @@ fn main() -> Result<(), std::io::Error> {
     let time_res = 2000;
     let v_res = 201;
 
-    let (optimal_energy, optimal_schedule) = dp_optim(&route0, &car1, max_time, time_res, v_res, Some(Velocity::new::<kilometer_per_hour>(38.0))).unwrap();
+    let (optimal_energy, optimal_schedule) = dp_optim(&route0, &car1, max_time, time_res, v_res, Some(Velocity::new::<kilometer_per_hour>(38.0)), None).unwrap();
     let _ = optimal_schedule.save("route0_result");
     println!("DP:\n{}", optimal_schedule);
 
