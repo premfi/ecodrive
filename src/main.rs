@@ -15,7 +15,7 @@ use ecodrive::*;
     x retrieve best path in dp_optim() and return it
     x start with lowest reachable velocity
     x add argument for initial velocity. Set another entry (according to discretize(v0)) of mat_parents and mat_e_used to 0 for this
-    o introduce minimum velocity (can also help optimization performance). Use it in discretization?
+    x introduce minimum velocity (can also help optimization performance). Use it in discretization? -> Don't use it in discretization, keep that linear and clear
     o write inverse optimization with fixed energy budget and time to be optimized
     o add function to calculate used energy and actual time from given DrivingSchedule
     o add utils functions, e.g. max_s() are not used but helpful for understanding
@@ -66,7 +66,7 @@ fn main() -> Result<(), std::io::Error> {
     
     let route_res = route_res(slopes[1], car1.roll_res_coeff);
 
-    let route0 = Route {lengths: lengths.clone(), slopes: slopes.clone(), min_speeds: vec![Velocity::new::<kilometer_per_hour>(0.0); 4], max_speeds: max_speeds.clone()};
+    let route0 = Route {lengths: lengths.clone(), slopes: slopes.clone(), min_speeds: vec![Velocity::new::<kilometer_per_hour>(8.0); 4], max_speeds: max_speeds.clone()};
 
     let route3_res8 = Route {lengths: vec![Length::new::<meter>(50.0); 40],
                             slopes: vec![Ratio::new::<percent>(0.0); 40],
