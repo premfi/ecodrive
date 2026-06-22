@@ -14,13 +14,13 @@ use ecodrive::*;
     x implement NoPathFoundError
     x retrieve best path in dp_optim() and return it
     x start with lowest reachable velocity
-    o add argument for initial velocity. Set another entry (according to discretize(v0)) of mat_parents and mat_e_used to 0 for this
-    o introduce minimum velocity (can also help optimization performance)
-    o try out clever splitting of route into sections such that maximum acceleration can be used
-    o add splitting function for routes or repeats/splits/etc. argument to load_route()
+    x add argument for initial velocity. Set another entry (according to discretize(v0)) of mat_parents and mat_e_used to 0 for this
+    o introduce minimum velocity (can also help optimization performance). Use it in discretization?
     o write inverse optimization with fixed energy budget and time to be optimized
     o add function to calculate used energy and actual time from given DrivingSchedule
     o add utils functions, e.g. max_s() are not used but helpful for understanding
+    o try out clever splitting of route into sections such that maximum acceleration can be used
+    o add splitting function for routes or repeats/splits/etc. argument to load_route()
     o clean up plotting functions and design interface for loading schedules from file to python
     o maybe add function that takes three paths: route, vehicles and returned schedule(s) and max_time, t_res, v_res that automatically calculates all of them
 */
@@ -77,7 +77,7 @@ fn main() -> Result<(), std::io::Error> {
     let time_res = 2000;
     let v_res = 201;
 
-    let (optimal_energy, optimal_schedule) = dp_optim(&route0, &car1, max_time, time_res, v_res).unwrap();
+    let (optimal_energy, optimal_schedule) = dp_optim(&route0, &car1, max_time, time_res, v_res, Some(Velocity::new::<kilometer_per_hour>(38.0))).unwrap();
     let _ = optimal_schedule.save("route0_result");
     println!("DP:\n{}", optimal_schedule);
 

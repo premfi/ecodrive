@@ -204,7 +204,7 @@ pub fn time_bin_to_seconds(bin: usize, min: Option<Time>, max: Time, num: usize)
     stepsize * (bin as PrefFloat) + min
 }
 
-/// Assings `v` to its corresponding bin from [0, `num-1`]. Bins are linearly spaced between `min` and `max`.
+/// Assigns `v` to its corresponding bin from [0, `num-1`]. Bins are linearly spaced between `min` and `max`.
 /// Positive values out of range are clamped into the edge bins. Panics for negative `v` inputs.
 pub fn discretize_v(v: Velocity, min: Option<Velocity>, max: Velocity, num: usize) -> usize {
 
@@ -235,12 +235,14 @@ pub fn v_bin_to_mps(bin: usize, min: Option<Velocity>, max: Velocity, num: usize
     stepsize * (bin as PrefFloat) + min
 }
 
-pub fn dp_optim(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usize, v_res: usize) -> Result<(AvailableEnergy, DrivingSchedule), DPError> {
+pub fn dp_optim(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usize, v_res: usize, v0: Option<Velocity>) -> Result<(AvailableEnergy, DrivingSchedule), DPError> {
     let start_time_dp = std::time::Instant::now();
     println!("dp_optim: starting optimization...");
     // TODO: check that no max_speed is larger than GLOBAL_V_MAX, or at least check that it will be clamped automatically by discretize_v
     // maybe don't throw an error in this case, but print that it will be clamped to GLOBAL_V_MAX and do that
     // TODO: check that no min_speed is larger than max_speed
+
+    // ==== INPUT CHECKS =================================
 
     // return ImpossibleTask if its impossible to traverse the route in the given time
     let min_theor_time = route.lengths.iter().zip(route.max_speeds.iter()).fold(Time::new::<second>(0.0), |acc , (&s, &v_max)| acc + (s / v_max));
@@ -273,9 +275,11 @@ pub fn dp_optim(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usize, 
     mat_e_used.fill(AvailableEnergy::new::<joule_per_kilogram>(PrefFloat::INFINITY));
     mat_parents.fill(parent_uninit);
 
-    // initialize step 0 with [0, 0] as only populated state and 0 used energy
-    mat_e_used[[0, 0, 0]] = AvailableEnergy::new::<joule_per_kilogram>(0.0);
-    mat_parents[[0, 0, 0]] = 0;
+    let v0_idx = discretize_v(v0.unwrap_or(Velocity::new::<meter_per_second>(0.0)), None, GLOBAL_V_MAX, v_res);
+
+    // initialize step 0 with [v0_idx, 0] as only populated state and 0 used energy
+    mat_e_used[[0, v0_idx, 0]] = AvailableEnergy::new::<joule_per_kilogram>(0.0);
+    mat_parents[[0, v0_idx, 0]] = 0;
 
     // ==== ACTUAL OPTIMIZATION ============================
 
