@@ -8,7 +8,7 @@ use std::fmt::{Debug, Display};
 
 pub mod config;
 pub use config::PrefFloat;
-use config::uom_si_preffloat::{Acceleration, Length, Velocity, Ratio, AvailableEnergy, Time};
+use config::uom_si_preffloat::{Acceleration, Length, Velocity, Ratio, AvailableEnergy, Energy, Time};
 use config::floats;
 
 pub mod constants;
@@ -199,6 +199,36 @@ pub fn discretize_time(t: Time, min: Option<Time>, max: Time, num: usize) -> usi
 /// Translates time bin to corresponding Time value.
 pub fn time_bin_to_seconds(bin: usize, min: Option<Time>, max: Time, num: usize) -> Time {
     let min = min.unwrap_or(Time::new::<second>(0.0));
+    let stepsize = (max - min) / (num - 1) as PrefFloat;
+
+    stepsize * (bin as PrefFloat) + min
+}
+
+/// Assings `e` to its corresponding bin from [0, `num-1`]. Bins are linearly spaced between `min` and `max`.
+/// Positive values out of range are clamped into the edge bins. Panics for negative `e` inputs.
+fn discretize_energy(e: AvailableEnergy, min: Option<AvailableEnergy>, max: AvailableEnergy, num: usize) -> usize {
+    assert!(e >= AvailableEnergy::new::<joule_per_kilogram>(0.0), "`e` must be non-negative! e={:?}", e);
+
+    let min = min.unwrap_or(AvailableEnergy::new::<joule_per_kilogram>(0.0));
+    assert!(min <= max, "`min` must not be larger than `max`! min={:?}, max={:?}", min, max);
+
+    if e > max {
+        return num - 1;
+    }
+
+    if e < min {
+        return 0;
+    }
+
+    let stepsize = (max - min) / (num - 1) as PrefFloat;
+    let bin = PrefFloat::from((e - min) / stepsize).floor() as usize;
+    
+    std::cmp::min(bin, num - 1)
+}
+
+/// Translates energy bin to corresponding AvailableEnergy value.
+fn e_bin_to_J_p_kg(bin: usize, min: Option<AvailableEnergy>, max: AvailableEnergy, num: usize) -> AvailableEnergy {
+    let min = min.unwrap_or(AvailableEnergy::new::<joule_per_kilogram>(0.0));
     let stepsize = (max - min) / (num - 1) as PrefFloat;
 
     stepsize * (bin as PrefFloat) + min
@@ -406,4 +436,165 @@ pub fn dp_optim(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usize, 
     println!("Running dp_optim() took {} ms", elapsed_time.as_millis());
 
     Ok((minimal_energy, optimal_schedule))
+}
+
+
+pub fn optim_time(route: &Route, vehicle: &Vehicle, e_cap: Energy, e_res: usize, v_res: usize, v_0: Option<Velocity>, v_end: Option<(Velocity, Velocity)>) -> Result<(Time, DrivingSchedule), DPError> {
+    let start_time_dp = std::time::Instant::now();
+    println!("optim_time: starting optimization...");
+
+    let e_cap: AvailableEnergy = e_cap / vehicle.get_mass();
+
+    // ==== PRELIMINARIES AND DEFINITIONS =================
+
+    // set moment bounds, including rho_rot
+    let (min_moment, max_moment) = (-GLOBAL_MOM_MAX * vehicle.rho_rot, GLOBAL_MOM_MAX * vehicle.rho_rot);
+
+    let route_resistances: Vec<Acceleration> = route.slopes.iter().map(|&slope| route_res(slope, vehicle.roll_res_coeff)).collect();
+
+    // set default values for min/max allowed end speeds, if None were given
+    let (min_allowed_end_speed, max_allowed_end_speed) = v_end.unwrap_or((Velocity::new::<meter_per_second>(0.0), GLOBAL_V_MAX));
+
+    let mut min_speeds_discretized: Vec<usize> = route.min_speeds.iter().map(|&min_speed| discretize_v(min_speed, None, GLOBAL_V_MAX, v_res)).collect();
+    let min_allowed_end_speed_discretized = discretize_v(min_allowed_end_speed, None, GLOBAL_V_MAX, v_res);
+    min_speeds_discretized.push(min_allowed_end_speed_discretized);
+
+    let mut max_speeds_discretized: Vec<usize> = route.max_speeds.iter().map(|&max_speed| discretize_v(max_speed, None, GLOBAL_V_MAX, v_res)).collect();
+    let max_allowed_end_speed_discretized = discretize_v(max_allowed_end_speed, None, GLOBAL_V_MAX, v_res);
+    max_speeds_discretized.push(max_allowed_end_speed_discretized);
+    
+    let num_sections = route.lengths.len();
+    let parent_uninit = usize::MAX;
+
+    // create matrices to store best paths and their used times
+    let mut mat_t_used  = Array3::< Time>::zeros((num_sections + 1, v_res, e_res)); // contains time of best path to this state found so far
+    let mut mat_parents = Array3::<usize>::zeros((num_sections + 1, v_res, e_res)); // each element is the flattened index of the parent state [t, v]
+
+    // so far, no paths exist yet. So the minimal time is infinite and all parents uninitialized
+    mat_t_used.fill(Time::new::<second>(PrefFloat::INFINITY));
+    mat_parents.fill(parent_uninit);
+
+    let v_0_idx = discretize_v(v_0.unwrap_or(Velocity::new::<meter_per_second>(0.0)), None, GLOBAL_V_MAX, v_res);
+
+    // initialize step 0 with [v0_idx, 0] as only populated state and 0 used time
+    mat_t_used[[0, v_0_idx, 0]] = Time::new::<second>(0.0);
+    mat_parents[[0, v_0_idx, 0]] = 0;
+
+    // ==== ACTUAL OPTIMIZATION ============================
+
+    // go through route section by section
+    for step in 0..num_sections {
+        let s = route.lengths[step];
+        let route_res = route_resistances[step];
+        let min_speed_discretized = std::cmp::max(min_speeds_discretized[step], min_speeds_discretized[step+1]);
+        let max_speed_discretized = std::cmp::min(max_speeds_discretized[step], max_speeds_discretized[step+1]);
+
+        // go through all populated states at the current step
+        for state_v in 0..v_res {
+            let ekin_curr = v_to_ekin(v_bin_to_mps(state_v, None, GLOBAL_V_MAX, v_res));
+
+            let min_reachable_v_next = discretize_v(ekin_to_v(
+                                        e_kin(s, min_moment - route_res, vehicle.get_c_param(), ekin_curr)).unwrap_or(Velocity::new::<meter_per_second>(0.0)),
+                                        None, GLOBAL_V_MAX, v_res);
+
+            // start either from lowest reachable or lowest allowed velocity
+            let min_v_next = std::cmp::max(min_reachable_v_next, min_speed_discretized);
+
+            for state_e in 0..e_res {
+                
+                // skip unpopulated states
+                if mat_parents[[step, state_v, state_e]] == parent_uninit {
+                    continue;
+                }
+
+                // branch out from populated states
+                for v_next_discretized in min_v_next..=max_speed_discretized {
+                    let ekin_next = v_to_ekin(v_bin_to_mps(v_next_discretized, None, GLOBAL_V_MAX, v_res));
+
+                    // discard path if vehicle would stand still across the whole section
+                    if approx_eq!(PrefFloat, ekin_curr.value, 0.0, ulps=2) && approx_eq!(PrefFloat, ekin_next.value, 0.0, ulps=2) {
+                        continue;
+                    }
+
+                    // calculate necessary A to reach that next ekin
+                    let a_param = retrieve_a_param(s, ekin_curr, ekin_next, vehicle.get_c_param());
+                    let mom = a_param + route_res; // mom includes rho_rot
+
+                    // skip if necessary moment is not allowed
+                    if mom < min_moment {
+                        continue; // try again with next-larger velocity
+                    }
+                    if mom > max_moment {
+                        break; // larger velocities will also exceed max_moment
+                    }
+
+                    // add energy for the current section to energy used so far
+                    let e_used_next = energy_used(s, mom, vehicle.rec_eff) / vehicle.rho_rot + e_bin_to_J_p_kg(state_e, None, e_cap, e_res);
+
+                    // discard path if forbidden
+                    if e_used_next > e_cap {
+                        break; // larger velocities will also exceed e_cap // TODO: compare with dp_optim and see if velocities should be iterated in reverse there in order to be able to skip over more times directly
+                    }
+
+                    let e_used_next_discretized = discretize_energy(e_used_next, None, e_cap, e_res);
+
+                    // add time used on current section to time used so far
+                    let time_used_next = mat_t_used[[step, state_v, state_e]] + delta_t(s, a_param, vehicle.get_c_param(), ekin_curr);
+
+                    // if current path to the reached state is optimal, replace parent of reached state by current path
+                    if time_used_next < mat_t_used[[step+1, v_next_discretized, e_used_next_discretized]] {
+                        // set current path as new optimal parent
+                        mat_parents[[step+1, v_next_discretized, e_used_next_discretized]] = state_v * e_res + state_e; // calculate index of parent
+                        // set current used time as new optimal used time
+                        mat_t_used[[step+1, v_next_discretized, e_used_next_discretized]] = time_used_next;
+                    }
+                }
+            }
+        }
+        println!("{}% finished", (step + 1) * 100 / num_sections);
+    }
+
+    // ==== RETRIEVAL OF BEST END STATE ==========================
+
+    let (_, v_opt_end, e_opt_end) = mat_t_used.select(Axis(0), &[mat_t_used.shape()[0] - 1]).argmin().expect("even if no path was found, argmin should yield a value");
+    let minimal_time = mat_t_used[[mat_t_used.shape()[0] - 1, v_opt_end, e_opt_end]];
+
+    if !(minimal_time < Time::new::<second>(PrefFloat::INFINITY)) {
+        return Err(DPError::NoPathFound);
+    }
+
+    println!("\nv_opt_end={:?}, e_opt_end={:?}", v_opt_end, e_opt_end);
+    println!("minimal_time= {:?}", minimal_time);
+
+    // ==== BACKTRACKING ALONG OPTIMAL PATH ======================
+
+    // initialize optimal schedule with Infinity
+    let mut optimal_schedule = DrivingSchedule {times: vec![Time::new::<second>(PrefFloat::INFINITY); num_sections + 1],
+                                                speeds: vec![Velocity::new::<meter_per_second>(PrefFloat::INFINITY); num_sections + 1]};
+
+    let mut parent_flat = parent_uninit; // will be overwritten before use
+
+    // optimal path ends in optimal state, so backtracking starts with it
+    let mut v_opt_curr = v_opt_end;
+    let mut e_opt_curr = e_opt_end;
+
+    // backtrack along optimal path, starting at the end
+    for step in (0..=num_sections).rev() {
+        // save v and t of current step to optimal schedule
+        optimal_schedule.speeds[step] = v_bin_to_mps(v_opt_curr, None, GLOBAL_V_MAX, v_res);
+        optimal_schedule.times[step] = mat_t_used[[step, v_opt_curr, e_opt_curr]];
+
+        // get parent index of current state
+        parent_flat = mat_parents[[step, v_opt_curr, e_opt_curr]];
+        println!("parent_flat = {}", parent_flat);
+
+        // retrieve v and e state from parent index
+        v_opt_curr = parent_flat / e_res; // integer division, truncating decimal part
+        e_opt_curr = parent_flat % e_res;
+    }
+
+    let elapsed_time = start_time_dp.elapsed();
+    println!("Running dp_optim() took {} ms", elapsed_time.as_millis());
+
+    Ok((minimal_time, optimal_schedule))
 }
