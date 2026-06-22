@@ -67,7 +67,7 @@ impl std::fmt::Display for DrivingSchedule {
         s.push_str(&format!("{:>wid_t$},{:>wid_v$}", "times", "speeds", wid_t=width_t+2, wid_v=width_v+4));
 
         // iterate through times and speeds. If one ends before the other, print empty while the other continues
-        for i in 0..len_t.max(len_v) {
+        for _i in 0..len_t.max(len_v) {
             let t_next = t_iter.next();
             let v_next = v_iter.next();
             match (t_next, v_next) {

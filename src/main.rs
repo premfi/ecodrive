@@ -25,13 +25,14 @@ use ecodrive::*;
     o maybe add function that takes three paths: route, vehicles and returned schedule(s) and max_time, t_res, v_res that automatically calculates all of them
 */
 
-use config::uom_si_preffloat::{Mass, Area, Length, Ratio, Velocity, Time};
+use config::uom_si_preffloat::{Mass, Area, Length, Ratio, Velocity, Time, AvailableEnergy};
 use uom::si::{mass::kilogram,
             area::square_meter, 
             length::meter, 
             ratio::percent, 
             velocity::{kilometer_per_hour, meter_per_second},
-            time::second};
+            time::second,
+            available_energy::joule_per_kilogram};
 
 use ndarray::Array3;
 
@@ -85,6 +86,9 @@ fn main() -> Result<(), std::io::Error> {
     let vhcl1 = &vhcls[1];
     println!("vhcl0.get_c_param()={:?}", vhcl0.get_c_param());
     println!("vhcl1.get_c_param()={:?}", vhcl1.get_c_param());
+
+    println!("ekin_to_v: {:?}", ekin_to_v(AvailableEnergy::new::<joule_per_kilogram>(15.0)));
+    println!("ekin_to_v: {:?}", ekin_to_v(AvailableEnergy::new::<joule_per_kilogram>(-5.0)));
 
     Ok(())
 }

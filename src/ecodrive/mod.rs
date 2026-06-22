@@ -4,6 +4,8 @@ use uom::si::{acceleration::meter_per_second_squared,
             time::second};
 use float_cmp::approx_eq;
 
+use std::fmt::{Debug, Display};
+
 pub mod config;
 use config::PrefFloat;
 use config::uom_si_preffloat::{Acceleration, Length, Velocity, Ratio, AvailableEnergy, Time};
@@ -36,11 +38,26 @@ pub enum DPError {
 
 impl std::error::Error for DPError {}
 
-impl std::fmt::Display for DPError {
+impl Display for DPError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match *self {
             DPError::ImpossibleTask => write!(f, "task impossible to solve with given parameters"),
             DPError::NoPathFound => write!(f, "no valid path found"),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum ValueError<T> {
+    NegativeValue(T),
+}
+
+impl<T: Debug + Display + Copy> std::error::Error for ValueError<T> {}
+
+impl<T: Display + Copy> Display for ValueError<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match *self {
+            ValueError::NegativeValue(val) => write!(f, "negative value not allowed: {}", val),
         }
     }
 }
@@ -144,7 +161,15 @@ pub fn v_to_ekin(v: Velocity) -> AvailableEnergy {
     v * v / 2.0
 }
 
-// fn ekin_to_v(ekin) // not necessary in direct DP version
+pub fn ekin_to_v(ekin: AvailableEnergy) -> Result<Velocity, ValueError<AvailableEnergy>> {
+    if approx_eq!(PrefFloat, ekin.value, 0.0, ulps=2) {
+        return Ok(Velocity::new::<meter_per_second>(0.0));
+    }
+    if ekin < AvailableEnergy::new::<joule_per_kilogram>(0.0) {
+        return Err(ValueError::NegativeValue(ekin));
+    }
+    Ok((2.0 * ekin).sqrt())
+}
 
 // *discretize and undiscretice t and v (4 functions in total)*
 
@@ -259,6 +284,10 @@ pub fn dp_optim(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usize, 
         for state_v in 0..v_res {
             let ekin_curr = v_to_ekin(v_bin_to_mps(state_v, None, GLOBAL_V_MAX, v_res));
 
+            let min_reachable_v_next = discretize_v(ekin_to_v(
+                                        e_kin(s, min_moment - route_res, vehicle.get_c_param(), ekin_curr)).unwrap_or(Velocity::new::<meter_per_second>(0.0)),
+                                        None, GLOBAL_V_MAX, v_res);
+
             for state_t in 0..t_res {
 
                 // skip unpopulated states
@@ -267,7 +296,7 @@ pub fn dp_optim(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usize, 
                 }
 
                 // branch out from populated states
-                for v_next_discretized in 0..=max_speed_discretized {
+                for v_next_discretized in min_reachable_v_next..=max_speed_discretized {
                     
                     let ekin_next = v_to_ekin(v_bin_to_mps(v_next_discretized, None, GLOBAL_V_MAX, v_res));
 
