@@ -6,13 +6,13 @@ use ecodrive::*;
     x maybe put settings (like f64/f32) in own module, e.g. use uom::si::f64 as uom_si_preffloat; . Then in e.g. vehicle: use uom_si_preffloat::{Mass, Area};
     x re-export everything from ecodrive, so that only ecodrive needs to be added in main.rs
     x move route related definitions and functions into route.rs
-    x create Schedule struct in mod.rs to hold result of dp_optim()
+    x create Schedule struct in mod.rs to hold result of optim_energy()
     x add serialization support for Schedule
-    x plot and check result of dp_optim() on route3_res8
+    x plot and check result of optim_energy() on route3_res8
     x replace const::E::powf() by .exp()
     x implement ImpossibleTaskError to return if given time is too short
     x implement NoPathFoundError
-    x retrieve best path in dp_optim() and return it
+    x retrieve best path in optim_energy() and return it
     x start with lowest reachable velocity
     x add argument for initial velocity. Set another entry (according to discretize(v0)) of mat_parents and mat_e_used to 0 for this
     x introduce minimum velocity (can also help optimization performance). Use it in discretization? -> Don't use it in discretization, keep that linear and clear
@@ -78,9 +78,14 @@ fn main() -> Result<(), std::io::Error> {
     let time_res = 2000;
     let v_res = 201;
 
-    let (optimal_energy, optimal_schedule) = dp_optim(&route0, &car1, max_time, time_res, v_res, Some(Velocity::new::<kilometer_per_hour>(38.0)), None).unwrap();
-    let _ = optimal_schedule.save("route0_result");
-    println!("DP:\n{}", optimal_schedule);
+    let (optimal_energy, optimal_schedule_e) = optim_energy(&route0, &car1, max_time, time_res, v_res, Some(Velocity::new::<kilometer_per_hour>(38.0)), None).unwrap();
+    let _ = optimal_schedule_e.save("route0_result");
+    println!("DP:\n{}", optimal_schedule_e);
+
+    let e_cap = AvailableEnergy::new::<joule_per_kilogram>(0.22327437340236883) * car1.get_mass();
+    let e_res = 2000;
+    let (optimal_time, optimal_schedule_t) = optim_time(&route0, &car1, Ratio::new::<percent>(70.0), e_res, v_res, Some(Velocity::new::<kilometer_per_hour>(38.0)), None).unwrap();
+    let _ = optimal_schedule_t.save("route0_result_t");
 
     let vhcls = load_vehicles("../vehicle1.csv").unwrap();
     let vhcl0 = &vhcls[0];

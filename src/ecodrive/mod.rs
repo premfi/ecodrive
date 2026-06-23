@@ -1,5 +1,6 @@
 use uom::si::{acceleration::meter_per_second_squared,
             available_energy::joule_per_kilogram,
+            energy::kilowatt_hour,
             velocity::{meter_per_second, kilometer_per_hour},
             time::second};
 use float_cmp::approx_eq;
@@ -265,9 +266,9 @@ pub fn v_bin_to_mps(bin: usize, min: Option<Velocity>, max: Velocity, num: usize
     stepsize * (bin as PrefFloat) + min
 }
 
-pub fn dp_optim(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usize, v_res: usize, v_0: Option<Velocity>, v_end: Option<(Velocity, Velocity)>) -> Result<(AvailableEnergy, DrivingSchedule), DPError> {
+pub fn optim_energy(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usize, v_res: usize, v_0: Option<Velocity>, v_end: Option<(Velocity, Velocity)>) -> Result<(AvailableEnergy, DrivingSchedule), DPError> {
     let start_time_dp = std::time::Instant::now();
-    println!("dp_optim: starting optimization...");
+    println!("optim_energy: starting optimization...");
     // TODO: check that no max_speed is larger than GLOBAL_V_MAX, or at least check that it will be clamped automatically by discretize_v
     // maybe don't throw an error in this case, but print that it will be clamped to GLOBAL_V_MAX and do that
     // TODO: check that no min_speed is larger than max_speed
@@ -433,17 +434,18 @@ pub fn dp_optim(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usize, 
     }
 
     let elapsed_time = start_time_dp.elapsed();
-    println!("Running dp_optim() took {} ms", elapsed_time.as_millis());
+    println!("Running optim_energy() took {} ms", elapsed_time.as_millis());
 
     Ok((minimal_energy, optimal_schedule))
 }
 
 
-pub fn optim_time(route: &Route, vehicle: &Vehicle, e_cap: Energy, e_res: usize, v_res: usize, v_0: Option<Velocity>, v_end: Option<(Velocity, Velocity)>) -> Result<(Time, DrivingSchedule), DPError> {
+pub fn optim_time(route: &Route, vehicle: &Vehicle, soc: Ratio, e_res: usize, v_res: usize, v_0: Option<Velocity>, v_end: Option<(Velocity, Velocity)>) -> Result<(Time, DrivingSchedule), DPError> {
     let start_time_dp = std::time::Instant::now();
     println!("optim_time: starting optimization...");
 
-    let e_cap: AvailableEnergy = e_cap / vehicle.get_mass();
+    let bat_cap = Energy::new::<kilowatt_hour>(4.0/*64.0*/) / vehicle.get_mass(); // TODO: vehicle.bat_cap / vehicle.get_mass(); // battery capacity
+    let e_0: AvailableEnergy = soc * bat_cap; // initial energy content
 
     // ==== PRELIMINARIES AND DEFINITIONS =================
 
@@ -475,10 +477,11 @@ pub fn optim_time(route: &Route, vehicle: &Vehicle, e_cap: Energy, e_res: usize,
     mat_parents.fill(parent_uninit);
 
     let v_0_idx = discretize_v(v_0.unwrap_or(Velocity::new::<meter_per_second>(0.0)), None, GLOBAL_V_MAX, v_res);
+    let e_0_idx = discretize_energy(e_0, None, bat_cap, e_res);
 
-    // initialize step 0 with [v0_idx, 0] as only populated state and 0 used time
-    mat_t_used[[0, v_0_idx, 0]] = Time::new::<second>(0.0);
-    mat_parents[[0, v_0_idx, 0]] = 0;
+    // initialize step 0 with [v0_idx, e_0_idx] as only populated state and 0 used time
+    mat_t_used[[0, v_0_idx, e_0_idx]] = Time::new::<second>(0.0);
+    mat_parents[[0, v_0_idx, e_0_idx]] = 0;
 
     // ==== ACTUAL OPTIMIZATION ============================
 
@@ -486,6 +489,7 @@ pub fn optim_time(route: &Route, vehicle: &Vehicle, e_cap: Energy, e_res: usize,
     for step in 0..num_sections {
         let s = route.lengths[step];
         let route_res = route_resistances[step];
+        //TODO: add c_param, modified for each section (optional multiplier as part of route)
         let min_speed_discretized = std::cmp::max(min_speeds_discretized[step], min_speeds_discretized[step+1]);
         let max_speed_discretized = std::cmp::min(max_speeds_discretized[step], max_speeds_discretized[step+1]);
 
@@ -528,15 +532,16 @@ pub fn optim_time(route: &Route, vehicle: &Vehicle, e_cap: Energy, e_res: usize,
                         break; // larger velocities will also exceed max_moment
                     }
 
-                    // add energy for the current section to energy used so far
-                    let e_used_next = energy_used(s, mom, vehicle.rec_eff) / vehicle.rho_rot + e_bin_to_J_p_kg(state_e, None, e_cap, e_res);
+                    // subtract energy used for the current section from energy in battery
+                    let e_used_next = e_bin_to_J_p_kg(state_e, None, bat_cap, e_res) - energy_used(s, mom, vehicle.rec_eff) / vehicle.rho_rot;
 
                     // discard path if forbidden
-                    if e_used_next > e_cap {
-                        break; // larger velocities will also exceed e_cap // TODO: compare with dp_optim and see if velocities should be iterated in reverse there in order to be able to skip over more times directly
+                    if e_used_next < AvailableEnergy::new::<joule_per_kilogram>(0.0) {
+                        break; // larger velocities will also completely empty the battery // TODO: compare with optim_energy and see if velocities should be iterated in reverse there in order to be able to skip over more times directly
                     }
 
-                    let e_used_next_discretized = discretize_energy(e_used_next, None, e_cap, e_res);
+                    // discretize and clamp energy to a maximum of bat_cap
+                    let e_used_next_discretized = discretize_energy(e_used_next, None, bat_cap, e_res);
 
                     // add time used on current section to time used so far
                     let time_used_next = mat_t_used[[step, state_v, state_e]] + delta_t(s, a_param, vehicle.get_c_param(), ekin_curr);
@@ -594,7 +599,7 @@ pub fn optim_time(route: &Route, vehicle: &Vehicle, e_cap: Energy, e_res: usize,
     }
 
     let elapsed_time = start_time_dp.elapsed();
-    println!("Running dp_optim() took {} ms", elapsed_time.as_millis());
+    println!("Running optim_time() took {} ms", elapsed_time.as_millis());
 
     Ok((minimal_time, optimal_schedule))
 }
