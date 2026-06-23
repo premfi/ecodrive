@@ -17,7 +17,9 @@ use ecodrive::*;
     x add argument for initial velocity. Set another entry (according to discretize(v0)) of mat_parents and mat_e_used to 0 for this
     x introduce minimum velocity (can also help optimization performance). Use it in discretization? -> Don't use it in discretization, keep that linear and clear
     x write inverse optimization with fixed energy budget and time to be optimized
-    o add way to include percentage of initial charge, so that it's clear how much more can be loaded into the battery before it's full. Ensure that this way, the discrete energy is always positive (between 0% and 100%)
+    o in optim_energy? : add way to include percentage of initial charge, so that it's clear how much more can be loaded into the battery before it's full. Ensure that this way, the discrete energy is always positive (between 0% and 100%)
+    o add rolling resistance factor for each section
+    o add air resistance factor for each section? How to balance frontal_area and c_w?
     o add function to calculate used energy and actual time from given DrivingSchedule
     o add utils functions, e.g. max_s() are not used but helpful for understanding
     o try out clever splitting of route into sections such that maximum acceleration can be used
@@ -69,12 +71,13 @@ fn main() -> Result<(), std::io::Error> {
     
     let route_res = route_res(slopes[1], car1.roll_res_coeff);
 
-    let route0 = Route {lengths: lengths.clone(), slopes: slopes.clone(), min_speeds: vec![Velocity::new::<kilometer_per_hour>(0.0); 4], max_speeds: max_speeds.clone()};
+    let route0 = Route {lengths: lengths.clone(), slopes: slopes.clone(), min_speeds: vec![Velocity::new::<kilometer_per_hour>(0.0); 4], max_speeds: max_speeds.clone(), roll_res_factors: vec![1.0; 4]};
 
     let route3_res8 = Route {lengths: vec![Length::new::<meter>(50.0); 40],
                             slopes: vec![Ratio::new::<percent>(0.0); 40],
                             min_speeds: vec![Velocity::new::<kilometer_per_hour>(0.0); 40],
-                            max_speeds: vec![Velocity::new::<kilometer_per_hour>(100.0); 40]};
+                            max_speeds: vec![Velocity::new::<kilometer_per_hour>(100.0); 40],
+                            roll_res_factors: vec![1.0; 40]};
     
     let max_time = Time::new::<second>(200.0);
     let time_res = 2000;

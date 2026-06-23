@@ -286,7 +286,9 @@ pub fn optim_energy(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usi
     // set moment bounds, including rho_rot
     let (min_moment, max_moment) = (-GLOBAL_MOM_MAX * vehicle.rho_rot, GLOBAL_MOM_MAX * vehicle.rho_rot);
 
-    let route_resistances: Vec<Acceleration> = route.slopes.iter().map(|&slope| route_res(slope, vehicle.roll_res_coeff)).collect();
+    let route_resistances: Vec<Acceleration> = route.slopes.iter().zip(route.roll_res_factors.iter())
+                                                .map(|(&slope, &roll_res_fac)| route_res(slope, vehicle.roll_res_coeff * roll_res_fac))
+                                                .collect();
     
     // set default values for min/max allowed end speeds, if None were given
     let (min_allowed_end_speed, max_allowed_end_speed) = v_end.unwrap_or((Velocity::new::<meter_per_second>(0.0), GLOBAL_V_MAX));
@@ -452,7 +454,9 @@ pub fn optim_time(route: &Route, vehicle: &Vehicle, soc: Ratio, e_res: usize, v_
     // set moment bounds, including rho_rot
     let (min_moment, max_moment) = (-GLOBAL_MOM_MAX * vehicle.rho_rot, GLOBAL_MOM_MAX * vehicle.rho_rot);
 
-    let route_resistances: Vec<Acceleration> = route.slopes.iter().map(|&slope| route_res(slope, vehicle.roll_res_coeff)).collect();
+    let route_resistances: Vec<Acceleration> = route.slopes.iter().zip(route.roll_res_factors.iter())
+                                                .map(|(&slope, &roll_res_fac)| route_res(slope, vehicle.roll_res_coeff * roll_res_fac))
+                                                .collect();
 
     // set default values for min/max allowed end speeds, if None were given
     let (min_allowed_end_speed, max_allowed_end_speed) = v_end.unwrap_or((Velocity::new::<meter_per_second>(0.0), GLOBAL_V_MAX));
