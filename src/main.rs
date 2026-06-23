@@ -16,7 +16,7 @@ use ecodrive::*;
     x start with lowest reachable velocity
     x add argument for initial velocity. Set another entry (according to discretize(v0)) of mat_parents and mat_e_used to 0 for this
     x introduce minimum velocity (can also help optimization performance). Use it in discretization? -> Don't use it in discretization, keep that linear and clear
-    o write inverse optimization with fixed energy budget and time to be optimized
+    x write inverse optimization with fixed energy budget and time to be optimized
     o add way to include percentage of initial charge, so that it's clear how much more can be loaded into the battery before it's full. Ensure that this way, the discrete energy is always positive (between 0% and 100%)
     o add function to calculate used energy and actual time from given DrivingSchedule
     o add utils functions, e.g. max_s() are not used but helpful for understanding
@@ -26,14 +26,15 @@ use ecodrive::*;
     o maybe add function that takes three paths: route, vehicles and returned schedule(s) and max_time, t_res, v_res that automatically calculates all of them
 */
 
-use config::uom_si_preffloat::{Mass, Area, Length, Ratio, Velocity, Time, AvailableEnergy};
+use config::uom_si_preffloat::{Mass, Area, Length, Ratio, Velocity, Time, AvailableEnergy, Energy};
 use uom::si::{mass::kilogram,
             area::square_meter, 
             length::meter, 
             ratio::percent, 
             velocity::{kilometer_per_hour, meter_per_second},
             time::second,
-            available_energy::joule_per_kilogram};
+            available_energy::joule_per_kilogram,
+            energy::kilowatt_hour};
 
 use ndarray::Array3;
 
@@ -44,6 +45,7 @@ fn main() -> Result<(), std::io::Error> {
     let car1 = Vehicle::new(0.01,
                                 0.3,
                                 1.1,
+                                Energy::new::<kilowatt_hour>(65.0),
                                 Mass::new::<kilogram>(2000.0),
                                 Area::new::<square_meter>(2.0),
                                 0.3);

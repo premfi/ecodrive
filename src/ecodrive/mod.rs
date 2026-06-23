@@ -444,7 +444,7 @@ pub fn optim_time(route: &Route, vehicle: &Vehicle, soc: Ratio, e_res: usize, v_
     let start_time_dp = std::time::Instant::now();
     println!("optim_time: starting optimization...");
 
-    let bat_cap = Energy::new::<kilowatt_hour>(4.0/*64.0*/) / vehicle.get_mass(); // TODO: vehicle.bat_cap / vehicle.get_mass(); // battery capacity
+    let bat_cap = vehicle.bat_cap / vehicle.get_mass(); // TODO: vehicle.bat_cap / vehicle.get_mass(); // battery capacity
     let e_0: AvailableEnergy = soc * bat_cap; // initial energy content
 
     // ==== PRELIMINARIES AND DEFINITIONS =================
