@@ -19,7 +19,8 @@ use ecodrive::*;
     x write inverse optimization with fixed energy budget and time to be optimized
     o in optim_energy? : add way to include percentage of initial charge, so that it's clear how much more can be loaded into the battery before it's full. Ensure that this way, the discrete energy is always positive (between 0% and 100%)
     x add rolling resistance factor for each section
-    o add air resistance factor for each section? How to balance frontal_area and c_w?
+    x add air resistance factor for each section? How to balance frontal_area and c_w?
+    o check using f32 instead
     o add function to calculate used energy and actual time from given DrivingSchedule
     o add utils functions, e.g. max_s() are not used but helpful for understanding
     o try out clever splitting of route into sections such that maximum acceleration can be used
@@ -84,13 +85,13 @@ fn main() -> Result<(), std::io::Error> {
     let v_res = 201;
 
     let (optimal_energy, optimal_schedule_e) = optim_energy(&route0, &car1, max_time, time_res, v_res, Some(Velocity::new::<kilometer_per_hour>(38.0)), None).unwrap();
-    let _ = optimal_schedule_e.save("route0_result");
+    let _ = optimal_schedule_e.save("results/route0_result");
     println!("DP:\n{}", optimal_schedule_e);
 
     let e_cap = AvailableEnergy::new::<joule_per_kilogram>(0.22327437340236883) * car1.get_mass();
     let e_res = 2000;
     let (optimal_time, optimal_schedule_t) = optim_time(&route0, &car1, Ratio::new::<percent>(70.0), e_res, v_res, Some(Velocity::new::<kilometer_per_hour>(38.0)), None).unwrap();
-    let _ = optimal_schedule_t.save("route0_result_t");
+    let _ = optimal_schedule_t.save("results/route0_result_t");
 
     let vhcls = load_vehicles("../vehicle1.csv").unwrap();
     let vhcl0 = &vhcls[0];
