@@ -48,12 +48,12 @@ fn main() -> Result<(), std::io::Error> {
 
     /* TODO: Instead of manually defining vehicles, they may be imported from a .csv file, stored in a list, and then executed one by one */
     let car1 = Vehicle::new(0.01,
-                                0.3,
-                                1.1,
-                                Energy::new::<kilowatt_hour>(65.0),
-                                Mass::new::<kilogram>(2000.0),
-                                Area::new::<square_meter>(2.0),
-                                0.3);
+                            0.3,
+                            1.1,
+                            Energy::new::<kilowatt_hour>(65.0),
+                            Mass::new::<kilogram>(2000.0),
+                            Area::new::<square_meter>(2.0),
+                            0.3);
 
     println!("c={:?}", car1.get_c_param());
 
@@ -90,7 +90,7 @@ fn main() -> Result<(), std::io::Error> {
     let _ = optimal_schedule_e.save("results/route0_result");
     println!("DP:\n{}", optimal_schedule_e);
 
-    let e_cap = AvailableEnergy::new::<joule_per_kilogram>(0.22327437340236883) * car1.get_mass();
+    let e_cap = AvailableEnergy::new::<joule_per_kilogram>(0.22327437340236883) * car1.mass;
     let e_res = 2000;
     let (optimal_time, optimal_schedule_t) = optim_time(&route0, &car1, Ratio::new::<percent>(70.0), e_res, v_res, Some(Velocity::new::<kilometer_per_hour>(38.0)), None).unwrap();
     let _ = optimal_schedule_t.save("results/route0_result_t");

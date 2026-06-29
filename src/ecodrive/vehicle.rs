@@ -8,8 +8,7 @@ use crate::ecodrive::PerLength;
 
 /// Struct containing all relevant data of a single vehicle.
 /// 
-/// C parameter is calculated from mass, frontal_area and c_w. These fields can only be accessed 
-/// via their set/get methods to ensure a valid value of C parameter at all times.
+/// C parameter is calculated from mass, frontal_area and c_w.
 
 use serde::{Deserialize, Deserializer};
 
@@ -34,7 +33,7 @@ pub fn load_vehicles(path: &str) -> Result<Vec<Vehicle>, csv::Error> {
 
     for record in reader.deserialize() {
         let mut vehicle: Vehicle = record?;
-        vehicle.update_c_param();
+        // vehicle.update_c_param();
         vehicles.push(vehicle);
     }
 
@@ -44,17 +43,15 @@ pub fn load_vehicles(path: &str) -> Result<Vec<Vehicle>, csv::Error> {
 #[derive(Clone, Debug, Deserialize)]
 pub struct Vehicle {
     pub roll_res_coeff: PrefFloat,  // rolling resistance coefficient
-    pub rho_rot: PrefFloat,     // factor for equivalent mass of rotating parts
-    pub rec_eff: PrefFloat,     // regenerative braking efficiency
+    pub rho_rot: PrefFloat,         // factor for equivalent mass of rotating parts
+    pub rec_eff: PrefFloat,         // regenerative braking efficiency
     #[serde(deserialize_with="deserialize_float_to_kWh", alias="bat_cap [kWh]")]
-    pub bat_cap: Energy,        // battery capacity [kWh]
+    pub bat_cap: Energy,            // battery capacity [kWh]
     #[serde(deserialize_with="deserialize_float_to_kg", alias="mass [kg]")]
-    mass: Mass,                 // vehicle mass [kg]
+    pub mass: Mass,                 // vehicle mass [kg]
     #[serde(deserialize_with="deserialize_float_to_sqm", alias="frontal_area [m^2]")]
-    frontal_area: Area,         // frontal area [m^2]
-    c_w: PrefFloat,             // drag coefficient
-    #[serde(skip)]
-    c_param: Option<PerLength>  // C parameter (mass-normalized air resistance prefactor) [1/m]. Automatically calculated.
+    pub frontal_area: Area,         // frontal area [m^2]
+    pub c_w: PrefFloat,             // drag coefficient
 }
 
 impl Vehicle {
@@ -75,52 +72,14 @@ impl Vehicle {
                     bat_cap,
                     mass,
                     frontal_area,
-                    c_w,
-                    c_param: None};
-
-        // calculate C parameter from given values
-        vhl.update_c_param();
+                    c_w};
 
         vhl
     }
 
-    /// Recalculates C parameter from mass, frontal_area and c_w.
-    fn update_c_param(&mut self) {
-        self.c_param = Some(RHO_AIR * self.c_w * self.frontal_area / self.mass)
-    }
-
-    /// Gets C parameter.
+    /// Calculates C parameter (mass-normalized air resistance prefactor) [1/m]
     pub fn get_c_param(&self) -> PerLength /* [1/m] */ {
-        self.c_param.expect("c_param not set! Should have been calculated automatically.")
-    }
-
-
-    pub fn set_mass(&mut self, mass: Mass) {
-        self.mass = mass;
-        self.update_c_param();
-    }
-
-    pub fn get_mass(&self) -> Mass {
-        self.mass
-    }
-    
-
-    pub fn set_c_w(&mut self, c_w: PrefFloat) {
-        self.c_w = c_w;
-        self.update_c_param();
-    }
-
-    pub fn get_c_w(&self) -> PrefFloat {
-        self.c_w
-    }
-
-
-    pub fn set_frontal_area(&mut self, frontal_area: Area) {
-        self.frontal_area = frontal_area;
-        self.update_c_param();
-    }
-
-    pub fn get_frontal_area(&self) -> Area {
-        self.frontal_area
+        // self.c_param.expect("c_param not set! Should have been calculated automatically.")
+        RHO_AIR * self.c_w * self.frontal_area / self.mass
     }
 }

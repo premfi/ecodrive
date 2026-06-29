@@ -405,7 +405,7 @@ pub fn optim_energy(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usi
         return Err(DPError::NoPathFound);
     }
     println!("\nv_opt_end={:?}, t_opt_end={:?}", v_opt_end, t_opt_end);
-    println!("minimal_energy= {:?}", minimal_energy);// * vehicle.get_mass()); // TODO: calculate as kWh using vehicle.mass and print/return that instead
+    println!("minimal_energy= {:?}", minimal_energy);// * vehicle.mass); // TODO: calculate as kWh using vehicle.mass and print/return that instead
 
     // ==== BACKTRACKING ALONG OPTIMAL PATH ======================
 
@@ -449,7 +449,7 @@ pub fn optim_time(route: &Route, vehicle: &Vehicle, soc: Ratio, e_res: usize, v_
     let start_time_dp = std::time::Instant::now();
     println!("optim_time: starting optimization...");
 
-    let bat_cap = vehicle.bat_cap / vehicle.get_mass(); // battery capacity
+    let bat_cap = vehicle.bat_cap / vehicle.mass; // battery capacity
     let e_0: AvailableEnergy = soc * bat_cap; // initial energy content
 
     // ==== PRELIMINARIES AND DEFINITIONS =================
