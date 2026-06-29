@@ -266,6 +266,7 @@ pub fn v_bin_to_mps(bin: usize, min: Option<Velocity>, max: Velocity, num: usize
     stepsize * (bin as PrefFloat) + min
 }
 
+/// Optimizes energy use for a given vehicle on a given route, given a time budget.
 pub fn optim_energy(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usize, v_res: usize, v_0: Option<Velocity>, v_end: Option<(Velocity, Velocity)>) -> Result<(AvailableEnergy, DrivingSchedule), DPError> {
     let start_time_dp = std::time::Instant::now();
     println!("optim_energy: starting optimization...");
@@ -324,6 +325,7 @@ pub fn optim_energy(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usi
     for step in 0..num_sections {
         let s = route.lengths[step];
         let route_res = route_resistances[step];
+        let c_param = vehicle.get_c_param();
         let min_speed_discretized = std::cmp::max(min_speeds_discretized[step], min_speeds_discretized[step+1]);
         let max_speed_discretized = std::cmp::min(max_speeds_discretized[step], max_speeds_discretized[step+1]);
 
@@ -332,7 +334,7 @@ pub fn optim_energy(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usi
             let ekin_curr = v_to_ekin(v_bin_to_mps(state_v, None, GLOBAL_V_MAX, v_res));
 
             let min_reachable_v_next = discretize_v(ekin_to_v(
-                                        e_kin(s, min_moment - route_res, vehicle.get_c_param(), ekin_curr)).unwrap_or(Velocity::new::<meter_per_second>(0.0)),
+                                        e_kin(s, min_moment - route_res, c_param, ekin_curr)).unwrap_or(Velocity::new::<meter_per_second>(0.0)),
                                         None, GLOBAL_V_MAX, v_res);
 
             // start either from lowest reachable or lowest allowed velocity
@@ -356,7 +358,7 @@ pub fn optim_energy(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usi
                     }
 
                     // calculate necessary A to reach that next ekin
-                    let a_param = retrieve_a_param(s, ekin_curr, ekin_next, vehicle.get_c_param());
+                    let a_param = retrieve_a_param(s, ekin_curr, ekin_next, c_param);
                     let mom = a_param + route_res; // mom includes rho_rot
 
                     // skip if necessary moment is not allowed
@@ -368,7 +370,7 @@ pub fn optim_energy(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usi
                     }
 
                     // add time for the current section to time used so far
-                    let time_used_next = delta_t(s, a_param, vehicle.get_c_param(), ekin_curr) + time_bin_to_seconds(state_t, None, max_time, t_res);
+                    let time_used_next = delta_t(s, a_param, c_param, ekin_curr) + time_bin_to_seconds(state_t, None, max_time, t_res);
 
                     // discard path if forbidden
                     if time_used_next > max_time {
@@ -384,7 +386,7 @@ pub fn optim_energy(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usi
                     // if current path to the reached state is optimal, replace parent of reached state by current path
                     if energy_used_next < mat_e_used[[step+1, v_next_discretized, time_used_next_discretized]] {
                         // set current path as new optimal parent
-                        mat_parents[[step+1, v_next_discretized, time_used_next_discretized]] = state_v * t_res + state_t; // calculate index of parent
+                        mat_parents[[step+1, v_next_discretized, time_used_next_discretized]] = state_v * t_res + state_t; // calculate flattened index of parent
                         // set current used energy as new optimal used energy
                         mat_e_used[[step+1, v_next_discretized, time_used_next_discretized]] = energy_used_next;
                     }
@@ -442,11 +444,12 @@ pub fn optim_energy(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usi
 }
 
 
+/// Optimizes used time for a given vehicle on a given route, given an energy budget.
 pub fn optim_time(route: &Route, vehicle: &Vehicle, soc: Ratio, e_res: usize, v_res: usize, v_0: Option<Velocity>, v_end: Option<(Velocity, Velocity)>) -> Result<(Time, DrivingSchedule), DPError> {
     let start_time_dp = std::time::Instant::now();
     println!("optim_time: starting optimization...");
 
-    let bat_cap = vehicle.bat_cap / vehicle.get_mass(); // TODO: vehicle.bat_cap / vehicle.get_mass(); // battery capacity
+    let bat_cap = vehicle.bat_cap / vehicle.get_mass(); // battery capacity
     let e_0: AvailableEnergy = soc * bat_cap; // initial energy content
 
     // ==== PRELIMINARIES AND DEFINITIONS =================
@@ -494,6 +497,7 @@ pub fn optim_time(route: &Route, vehicle: &Vehicle, soc: Ratio, e_res: usize, v_
         let s = route.lengths[step];
         let route_res = route_resistances[step];
         //TODO: add c_param, modified for each section (optional multiplier as part of route)
+        let c_param = vehicle.get_c_param();
         let min_speed_discretized = std::cmp::max(min_speeds_discretized[step], min_speeds_discretized[step+1]);
         let max_speed_discretized = std::cmp::min(max_speeds_discretized[step], max_speeds_discretized[step+1]);
 
@@ -502,7 +506,7 @@ pub fn optim_time(route: &Route, vehicle: &Vehicle, soc: Ratio, e_res: usize, v_
             let ekin_curr = v_to_ekin(v_bin_to_mps(state_v, None, GLOBAL_V_MAX, v_res));
 
             let min_reachable_v_next = discretize_v(ekin_to_v(
-                                        e_kin(s, min_moment - route_res, vehicle.get_c_param(), ekin_curr)).unwrap_or(Velocity::new::<meter_per_second>(0.0)),
+                                        e_kin(s, min_moment - route_res, c_param, ekin_curr)).unwrap_or(Velocity::new::<meter_per_second>(0.0)),
                                         None, GLOBAL_V_MAX, v_res);
 
             // start either from lowest reachable or lowest allowed velocity
@@ -525,7 +529,7 @@ pub fn optim_time(route: &Route, vehicle: &Vehicle, soc: Ratio, e_res: usize, v_
                     }
 
                     // calculate necessary A to reach that next ekin
-                    let a_param = retrieve_a_param(s, ekin_curr, ekin_next, vehicle.get_c_param());
+                    let a_param = retrieve_a_param(s, ekin_curr, ekin_next, c_param);
                     let mom = a_param + route_res; // mom includes rho_rot
 
                     // skip if necessary moment is not allowed
@@ -548,12 +552,12 @@ pub fn optim_time(route: &Route, vehicle: &Vehicle, soc: Ratio, e_res: usize, v_
                     let e_used_next_discretized = discretize_energy(e_used_next, None, bat_cap, e_res);
 
                     // add time used on current section to time used so far
-                    let time_used_next = mat_t_used[[step, state_v, state_e]] + delta_t(s, a_param, vehicle.get_c_param(), ekin_curr);
+                    let time_used_next = mat_t_used[[step, state_v, state_e]] + delta_t(s, a_param, c_param, ekin_curr);
 
                     // if current path to the reached state is optimal, replace parent of reached state by current path
                     if time_used_next < mat_t_used[[step+1, v_next_discretized, e_used_next_discretized]] {
                         // set current path as new optimal parent
-                        mat_parents[[step+1, v_next_discretized, e_used_next_discretized]] = state_v * e_res + state_e; // calculate index of parent
+                        mat_parents[[step+1, v_next_discretized, e_used_next_discretized]] = state_v * e_res + state_e; // calculate flattened index of parent
                         // set current used time as new optimal used time
                         mat_t_used[[step+1, v_next_discretized, e_used_next_discretized]] = time_used_next;
                     }

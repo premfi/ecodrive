@@ -18,7 +18,7 @@ use ecodrive::*;
     x introduce minimum velocity (can also help optimization performance). Use it in discretization? -> Don't use it in discretization, keep that linear and clear
     x write inverse optimization with fixed energy budget and time to be optimized
     o in optim_energy? : add way to include percentage of initial charge, so that it's clear how much more can be loaded into the battery before it's full. Ensure that this way, the discrete energy is always positive (between 0% and 100%)
-    o add rolling resistance factor for each section
+    x add rolling resistance factor for each section
     o add air resistance factor for each section? How to balance frontal_area and c_w?
     o add function to calculate used energy and actual time from given DrivingSchedule
     o add utils functions, e.g. max_s() are not used but helpful for understanding
