@@ -50,7 +50,9 @@ def plot_route(path, save_to=None, cmap_name="Spectral"):
 
     # set default name if no destination given
     if save_to == None:
-        save_to = f"plotting/figures/overview_{route_name}.png"
+        dirname = os.path.dirname(__file__)
+        filename = os.path.join(dirname, f'figures/overview_{route_name}.png')
+        save_to = filename
 
     # add .png if destination has no file extension
     elif os.path.splitext(save_to)[1] == "":
