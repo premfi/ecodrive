@@ -27,7 +27,7 @@ use ecodrive::*;
     x include slope into c_param to account for longer distance if slope is higher? -> don't include it, would be complicated to differentiate between C and s
     x cleanup print statements
     x go through TODOs
-    o put custom errors in their own file "error.rs"
+    x put custom errors in their own file "error.rs"
     o try out clever splitting of route into sections such that maximum acceleration can be used
     x add splitting function for routes or repeats/splits/etc. argument to load_route()
     x add truck as an example vehicle in vehicle1.csv

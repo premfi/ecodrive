@@ -25,6 +25,9 @@ pub use route::{Route, load_route};
 mod schedule;
 pub use schedule::DrivingSchedule;
 
+pub mod error;
+pub use error::{DPError, ValueError};
+
 use uom::typenum::{N1, Z0};
 pub type PerLength = uom::si::Quantity<uom::si::ISQ<N1, Z0, Z0, Z0, Z0, Z0, Z0>,
                                             uom::si::SI<PrefFloat>, PrefFloat>; // [1/m]
@@ -32,37 +35,6 @@ pub type PerLength = uom::si::Quantity<uom::si::ISQ<N1, Z0, Z0, Z0, Z0, Z0, Z0>,
 use ndarray::{Array3, Axis};
 use ndarray_stats::QuantileExt;
 
-#[derive(Debug)]
-pub enum DPError {
-    ImpossibleTask,
-    NoPathFound,
-}
-
-impl std::error::Error for DPError {}
-
-impl Display for DPError {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match *self {
-            DPError::ImpossibleTask => write!(f, "task impossible to solve with given parameters"),
-            DPError::NoPathFound => write!(f, "no valid path found"),
-        }
-    }
-}
-
-#[derive(Debug)]
-pub enum ValueError<T> {
-    NegativeValue(T),
-}
-
-impl<T: Debug + Display + Copy> std::error::Error for ValueError<T> {}
-
-impl<T: Debug + Copy> Display for ValueError<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match *self {
-            ValueError::NegativeValue(val) => write!(f, "negative value not allowed: {:?}", val),
-        }
-    }
-}
 
 fn e_kin(s: Length, a_param: Acceleration, c_param: PerLength, ekin_0: AvailableEnergy) -> AvailableEnergy {
     (a_param / c_param) + (ekin_0 - (a_param / c_param)) * (-c_param * s).exp()
