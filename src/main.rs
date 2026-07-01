@@ -21,14 +21,14 @@ use ecodrive::*;
     x add rolling resistance factor for each section
     x add air resistance factor for each section? How to balance frontal_area and c_w?
     x check using f32 instead
+    x probably remove c_param as a field from vehicle and only have get_c_param() for recalculation every time
     o add function to calculate used energy and actual time from given DrivingSchedule
-    o probably remove c_param as a field from vehicle and only have get_c_param() for recalculation every time
     o add utils functions, e.g. max_s() are not used but helpful for understanding
     o try out clever splitting of route into sections such that maximum acceleration can be used
     o add splitting function for routes or repeats/splits/etc. argument to load_route()
     o add truck as an example vehicle in vehicle1.csv
     o clean up plotting functions and design interface for loading schedules from file to python
-    o maybe add function that takes three paths: route, vehicles and returned schedule(s) and max_time, t_res, v_res that automatically calculates all of them -> do this as an example in main instead
+    o add example in main that takes three paths: route, vehicles and returned schedule(s) and max_time, t_res, v_res that automatically calculates all of them
 */
 
 use config::uom_si_preffloat::{Mass, Area, Length, Ratio, Velocity, Time, AvailableEnergy, Energy};
@@ -86,8 +86,8 @@ fn main() -> Result<(), std::io::Error> {
     let time_res = 2000;
     let v_res = 201;
 
-    let (optimal_energy, optimal_schedule_e) = optim_energy(&route0, &car1, max_time, time_res, v_res, Some(Velocity::new::<kilometer_per_hour>(38.0)), None).unwrap();
-    let _ = optimal_schedule_e.save("results/route0_result");
+    let (optimal_energy, optimal_schedule_e) = optim_energy(&route3_res8, &car1, max_time, time_res, v_res, Some(Velocity::new::<kilometer_per_hour>(38.0)), None, None).unwrap();
+    let _ = optimal_schedule_e.save("results/route3_res8_result");
     println!("DP:\n{}", optimal_schedule_e);
 
     let e_cap = AvailableEnergy::new::<joule_per_kilogram>(0.22327437340236883) * car1.mass;

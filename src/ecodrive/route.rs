@@ -19,7 +19,7 @@ struct RouteSection {
     #[serde(alias = "length [m]")]
     pub length_m: PrefFloat,
 
-    #[serde(alias = "slope [%]")]
+    #[serde(alias = "slope [pct]")]
     pub slope_pct: PrefFloat,
 
     #[serde(alias = "min_speed [km/h]", default)]

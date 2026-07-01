@@ -9,21 +9,24 @@ GLOBAL_V_MAX = 180 # [km/h]
 
 
 def load_route(route_name, repeat=1):
+    """Load route from .csv file, converting km/h to m/s"""
     # add .csv file ending if not provided
     if os.path.splitext(route_name)[1] == "":
         route_name = route_name + ".csv"
 
-    route = np.loadtxt(route_name, skiprows=1, delimiter=',')
+    route = np.genfromtxt(route_name, names=True, delimiter=',')
 
-    lengths = np.repeat(route[:, 0], repeat) / repeat # in m, divide by repeat so total length stays the same
-    slopes = np.repeat(route[:, 1], repeat) # in %
-    max_speeds = np.repeat(route[:, 2] / 3.6, repeat) # convert to m/s
+    lengths_m = np.repeat(route["length_m"], repeat) / repeat # in m, divide by repeat so total length stays the same
+    slopes_pct = np.repeat(route["slope_pct"], repeat) # in %
+    max_speeds_mps = np.repeat(route["max_speed_kmh"] / 3.6, repeat) # convert to m/s
 
-    return (lengths, slopes, max_speeds)
+    return {"lengths_m": lengths_m, "slopes_pct": slopes_pct, "max_speeds_mps": max_speeds_mps}
 
 
 def plot_route(path, save_to=None, cmap_name="Spectral"):
-    lengths, slopes, max_speeds = load_route(path)
+    """Create and save plot of route, including elevation (y-axis) and speed limits (color-coded)"""
+    route = load_route(path)
+    lengths, slopes, max_speeds = route["lengths_m"], route["slopes_pct"], route["max_speeds_mps"]
     max_speeds = max_speeds * 3.6 # [km/h]
     cmap = plt.get_cmap(cmap_name)
     
@@ -70,8 +73,13 @@ def plot_route(path, save_to=None, cmap_name="Spectral"):
 if __name__ == "__main__":
     print("executing plot_route.py")
 
+    # either change these to the desired paths or supply them as command line arguments when calling plot_route.py
+    default_route = "routes/route3_res8.csv"
+    default_destination = "figures/overview_route3_res8.png"
+
     if len(sys.argv) <= 1:
-        print("not enough arguments! Please provide a file name and optionally a destination")
+        print("using default arguments")
+        plot_route(default_route, None)
 
     elif len(sys.argv) == 2:
         plot_route(sys.argv[1], None)

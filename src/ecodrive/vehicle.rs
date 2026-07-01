@@ -66,7 +66,7 @@ impl Vehicle {
                 ) -> Vehicle {
 
         // fill the public fields
-        let mut vhl = Vehicle {roll_res_coeff,
+        let vhl = Vehicle {roll_res_coeff,
                     rec_eff,
                     rho_rot,
                     bat_cap,

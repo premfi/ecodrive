@@ -267,7 +267,7 @@ pub fn v_bin_to_mps(bin: usize, min: Option<Velocity>, max: Velocity, num: usize
 }
 
 /// Optimizes energy use for a given vehicle on a given route, given a time budget.
-pub fn optim_energy(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usize, v_res: usize, v_0: Option<Velocity>, v_end: Option<(Velocity, Velocity)>) -> Result<(AvailableEnergy, DrivingSchedule), DPError> {
+pub fn optim_energy(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usize, v_res: usize, v_0: Option<Velocity>, v_end: Option<(Velocity, Velocity)>, e_headroom: Option<Energy>) -> Result<(AvailableEnergy, DrivingSchedule), DPError> {
     let start_time_dp = std::time::Instant::now();
     println!("optim_energy: starting optimization...");
     // TODO: check that no max_speed is larger than GLOBAL_V_MAX, or at least check that it will be clamped automatically by discretize_v
@@ -291,6 +291,12 @@ pub fn optim_energy(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usi
                                                 .map(|(&slope, &roll_res_fac)| route_res(slope, vehicle.roll_res_coeff * roll_res_fac))
                                                 .collect();
     
+    // set default value for e_headroom, if None was given
+    let min_allowed_energy: AvailableEnergy = match e_headroom {
+        Some(e) => -e.abs() / vehicle.mass,
+        None => AvailableEnergy::new::<joule_per_kilogram>(-floats::INFINITY),
+    };  // min_allowed_energy now holds the minimal allowed value for the used energy
+
     // set default values for min/max allowed end speeds, if None were given
     let (min_allowed_end_speed, max_allowed_end_speed) = v_end.unwrap_or((Velocity::new::<meter_per_second>(0.0), GLOBAL_V_MAX));
 
@@ -382,6 +388,9 @@ pub fn optim_energy(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usi
 
                     // add energy used on current section to energy used so far
                     let energy_used_next = mat_e_used[[step, state_v, state_t]] + energy_used(s, mom, vehicle.rec_eff) / vehicle.rho_rot;
+                    
+                    // battery cannot store more additional energy than specified by e_headroom
+                    let energy_used_next = energy_used_next.max(min_allowed_energy);
 
                     // if current path to the reached state is optimal, replace parent of reached state by current path
                     if energy_used_next < mat_e_used[[step+1, v_next_discretized, time_used_next_discretized]] {
@@ -413,7 +422,7 @@ pub fn optim_energy(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usi
     let mut optimal_schedule = DrivingSchedule {times: vec![Time::new::<second>(PrefFloat::INFINITY); num_sections + 1],
                                                 speeds: vec![Velocity::new::<meter_per_second>(PrefFloat::INFINITY); num_sections + 1]};
 
-    let mut parent_flat = parent_uninit; // will be overwritten before use
+    let mut parent_flat;
 
     // optimal path ends in optimal state, so backtracking starts with it
     let mut v_opt_curr = v_opt_end;
@@ -585,7 +594,7 @@ pub fn optim_time(route: &Route, vehicle: &Vehicle, soc: Ratio, e_res: usize, v_
     let mut optimal_schedule = DrivingSchedule {times: vec![Time::new::<second>(PrefFloat::INFINITY); num_sections + 1],
                                                 speeds: vec![Velocity::new::<meter_per_second>(PrefFloat::INFINITY); num_sections + 1]};
 
-    let mut parent_flat = parent_uninit; // will be overwritten before use
+    let mut parent_flat;
 
     // optimal path ends in optimal state, so backtracking starts with it
     let mut v_opt_curr = v_opt_end;
