@@ -92,14 +92,15 @@ fn main() -> Result<(), std::io::Error> {
 
     let route2 = load_route("routes/route2.csv").unwrap();
     let route1 = load_route("routes/route1.csv").unwrap();
+    let route1_res2 = load_route("routes/route1_res2.csv").unwrap();
 
-    let (optimal_energy, optimal_schedule_e) = optim_energy(&route1, &car1, max_time, time_res, v_res, Some(Velocity::new::<kilometer_per_hour>(38.0)), None, None).unwrap();
-    // println!("DP:\n{}", optimal_schedule_e);
-    let _ = optimal_schedule_e.save("results/route1_result_e");
+    // let (optimal_energy, optimal_schedule_e) = optim_energy(&route1_res2, &car1, max_time, time_res, v_res, Some(Velocity::new::<kilometer_per_hour>(38.0)), None, None).unwrap();
+    // // println!("DP:\n{}", optimal_schedule_e);
+    // let _ = optimal_schedule_e.save("results/route1_res2_result_e");
 
     let e_res = 2000;
-    let (optimal_time, optimal_schedule_t) = optim_time(&route1, &car1, Ratio::new::<percent>(5.0), e_res, v_res, Some(Velocity::new::<kilometer_per_hour>(38.0)), None).unwrap();
-    let _ = optimal_schedule_t.save("results/route1_result_t");
+    let (optimal_time, optimal_schedule_t) = optim_time(&route1_res2, &car1, Ratio::new::<percent>(5.0), e_res, v_res, Some(Velocity::new::<kilometer_per_hour>(38.0)), None).unwrap();
+    let _ = optimal_schedule_t.save("results/route1_res2_result_t");
 
     let vhcls = load_vehicles("../vehicle1.csv").unwrap();
     let vhcl0 = &vhcls[0];

@@ -355,12 +355,17 @@ pub fn optim_energy(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usi
         for state_v in 0..v_res {
             let ekin_curr = v_to_ekin(v_bin_to_mps(state_v, None, GLOBAL_V_MAX, v_res));
 
-            let min_reachable_v_next = discretize_v(ekin_to_v(
-                                        e_kin(s, min_moment - route_res, c_param, ekin_curr)).unwrap_or(Velocity::new::<meter_per_second>(0.0)),
+            // let min_reachable_v_next = discretize_v(ekin_to_v(
+            //                             e_kin(s, min_moment - route_res, c_param, ekin_curr)).unwrap_or(Velocity::new::<meter_per_second>(0.0)),
+            //                             None, GLOBAL_V_MAX, v_res);
+            let max_reachable_v_next = discretize_v(ekin_to_v(
+                                        e_kin(s, max_moment - route_res, c_param, ekin_curr)).unwrap_or(GLOBAL_V_MAX),
                                         None, GLOBAL_V_MAX, v_res);
 
             // start either from lowest reachable or lowest allowed velocity
-            let min_v_next = std::cmp::max(min_reachable_v_next, min_speed_discretized);
+            // let min_v_next = std::cmp::max(min_reachable_v_next, min_speed_discretized);
+            // start either from highest reachable or highest allowed velocity
+            let max_v_next = std::cmp::min(max_reachable_v_next, max_speed_discretized);
 
             for state_t in 0..t_res {
 
@@ -370,7 +375,8 @@ pub fn optim_energy(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usi
                 }
 
                 // branch out from populated states
-                for v_next_discretized in min_v_next..=max_speed_discretized {
+                // for v_next_discretized in min_v_next..=max_speed_discretized {
+                for v_next_discretized in (min_speed_discretized..=max_v_next).rev() {
                     
                     let ekin_next = v_to_ekin(v_bin_to_mps(v_next_discretized, None, GLOBAL_V_MAX, v_res));
 
@@ -385,10 +391,12 @@ pub fn optim_energy(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usi
 
                     // skip if necessary moment is not allowed
                     if mom < min_moment {
-                        continue; // try again with next-larger velocity
+                        // continue; // try again with next-larger velocity
+                        break; // lower velocities will also lead to too low moment
                     }
                     if mom > max_moment {
-                        break; // larger velocities will also exceed max_moment
+                        // break; // larger velocities will also exceed max_moment
+                        continue; // try again with next-lower velocity
                     }
 
                     // add time for the current section to time used so far
@@ -401,7 +409,8 @@ pub fn optim_energy(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usi
 
                     // discard path if forbidden
                     if time_used_next > max_time {
-                        continue; // try again with next-larger velocity
+                        // continue; // try again with next-larger velocity
+                        break; // next-lower velocity will also exceed max_time
                     }
 
                     // round up time_used_next into bins
