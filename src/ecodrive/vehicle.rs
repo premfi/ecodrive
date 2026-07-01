@@ -28,6 +28,8 @@ fn deserialize_float_to_kWh<'de, D>(d: D) -> Result<Energy, D::Error> where D: D
 }
 
 pub fn load_vehicles(path: &str) -> Result<Vec<Vehicle>, csv::Error> {
+    println!("Loading vehicles from {}", path);
+
     let mut vehicles: Vec<Vehicle> = vec![];
     let mut reader = csv::ReaderBuilder::new().trim(csv::Trim::All).from_path(path)?;
 
