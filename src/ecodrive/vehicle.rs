@@ -32,7 +32,7 @@ pub fn load_vehicles(path: &str) -> Result<Vec<Vehicle>, csv::Error> {
     let mut reader = csv::ReaderBuilder::new().trim(csv::Trim::All).from_path(path)?;
 
     for record in reader.deserialize() {
-        let mut vehicle: Vehicle = record?;
+        let vehicle: Vehicle = record?;
         // vehicle.update_c_param();
         vehicles.push(vehicle);
     }
@@ -49,7 +49,7 @@ pub struct Vehicle {
     pub bat_cap: Energy,            // battery capacity [kWh]
     #[serde(deserialize_with="deserialize_float_to_kg", alias="mass [kg]")]
     pub mass: Mass,                 // vehicle mass [kg]
-    #[serde(deserialize_with="deserialize_float_to_sqm", alias="frontal_area [m^2]")]
+    #[serde(deserialize_with="deserialize_float_to_sqm", alias="frontal_area [sqm]")]
     pub frontal_area: Area,         // frontal area [m^2]
     pub c_w: PrefFloat,             // drag coefficient
 }

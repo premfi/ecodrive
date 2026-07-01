@@ -22,12 +22,12 @@ use ecodrive::*;
     x add air resistance factor for each section? How to balance frontal_area and c_w?
     x check using f32 instead
     x probably remove c_param as a field from vehicle and only have get_c_param() for recalculation every time
-    o add function to calculate used energy and actual time from given DrivingSchedule
+    x add function to calculate used energy and actual time from given DrivingSchedule (not necessary as it was correct with optim_energy)
     o add utils functions, e.g. max_s() are not used but helpful for understanding
     o try out clever splitting of route into sections such that maximum acceleration can be used
     o add splitting function for routes or repeats/splits/etc. argument to load_route()
     o add truck as an example vehicle in vehicle1.csv
-    o clean up plotting functions and design interface for loading schedules from file to python
+    x clean up plotting functions and design interface for loading schedules from file to python
     o add example in main that takes three paths: route, vehicles and returned schedule(s) and max_time, t_res, v_res that automatically calculates all of them
 */
 
@@ -82,11 +82,13 @@ fn main() -> Result<(), std::io::Error> {
                             max_speeds: vec![Velocity::new::<kilometer_per_hour>(100.0); 40],
                             roll_res_factors: vec![1.0; 40]};
     
-    let max_time = Time::new::<second>(200.0);
+    let max_time = Time::new::<second>(500.0);
     let time_res = 2000;
     let v_res = 201;
 
-    let (optimal_energy, optimal_schedule_e) = optim_energy(&route3_res8, &car1, max_time, time_res, v_res, Some(Velocity::new::<kilometer_per_hour>(38.0)), None, None).unwrap();
+    let route2 = load_route("routes/route2.csv").unwrap();
+
+    let (optimal_energy, optimal_schedule_e) = optim_energy(&route2, &car1, max_time, time_res, v_res, Some(Velocity::new::<kilometer_per_hour>(38.0)), None, None).unwrap();
     let _ = optimal_schedule_e.save("results/route3_res8_result");
     println!("DP:\n{}", optimal_schedule_e);
 
@@ -98,11 +100,9 @@ fn main() -> Result<(), std::io::Error> {
     let vhcls = load_vehicles("../vehicle1.csv").unwrap();
     let vhcl0 = &vhcls[0];
     let vhcl1 = &vhcls[1];
-    println!("vhcl0.get_c_param()={:?}", vhcl0.get_c_param());
-    println!("vhcl1.get_c_param()={:?}", vhcl1.get_c_param());
 
-    println!("ekin_to_v: {:?}", ekin_to_v(AvailableEnergy::new::<joule_per_kilogram>(15.0)));
-    println!("ekin_to_v: {}", ekin_to_v(AvailableEnergy::new::<joule_per_kilogram>(-5.0)).unwrap_err());
+    // let route1 = load_route("routes/route1.csv").unwrap();
+    // println!("route1: {:?}", route1);
 
     Ok(())
 }

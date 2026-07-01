@@ -91,7 +91,7 @@ pub fn retrieve_a_param(s: Length, ekin_0: AvailableEnergy, ekin_s: AvailableEne
 pub fn delta_t(s: Length, a_param: Acceleration, c_param: PerLength, ekin_0: AvailableEnergy) -> Time {
    
     // A = 0
-    if approx_eq!(PrefFloat, a_param.value, 0.0, ulps=2) {
+    if approx_eq!(PrefFloat, a_param.value, 0.0, ulps=10) {
 
         // A = 0, ekin_0 > 0
         if ekin_0 > AvailableEnergy::new::<joule_per_kilogram>(0.0) {
@@ -100,7 +100,7 @@ pub fn delta_t(s: Length, a_param: Acceleration, c_param: PerLength, ekin_0: Ava
         
         // A = 0, no ekin_0 -> impossible to reach `s`
         else {
-            println!("case 1.1");
+            // println!("case 1.1");
             return Time::new::<second>(floats::INFINITY);
         }
     }
@@ -108,7 +108,7 @@ pub fn delta_t(s: Length, a_param: Acceleration, c_param: PerLength, ekin_0: Ava
     // positive A
     else if a_param > Acceleration::new::<meter_per_second_squared>(0.0) {
         // constant speed
-        if approx_eq!(PrefFloat, ((c_param / a_param) * ekin_0).into(), 1.0, epsilon=0.02, ulps=2) {// TODO: CHECK EPSILON AND ULPS GOOD VALUES
+        if approx_eq!(PrefFloat, ((c_param / a_param) * ekin_0).into(), 1.0, ulps=10) {// TODO: CHECK EPSILON AND ULPS GOOD VALUES
             // println!("case 2.1");
             return s / (2.0 * ekin_0).sqrt();
         } 
@@ -135,7 +135,7 @@ pub fn delta_t(s: Length, a_param: Acceleration, c_param: PerLength, ekin_0: Ava
     // negative A
     else {
         // end speed will be exactly zero
-        if approx_eq!(PrefFloat, (-c_param * ekin_0 / (PrefFloat::from((c_param * s).exp()) - 1.0)).value, a_param.value, ulps=2) {
+        if approx_eq!(PrefFloat, (-c_param * ekin_0 / (PrefFloat::from((c_param * s).exp()) - 1.0)).value, a_param.value, ulps=10) {
             // println!("case 3.1");
             let x: PrefFloat = 0.0;
             let y: PrefFloat = (-(c_param / a_param) * ekin_0).sqrt().into();
@@ -163,7 +163,7 @@ pub fn v_to_ekin(v: Velocity) -> AvailableEnergy {
 }
 
 pub fn ekin_to_v(ekin: AvailableEnergy) -> Result<Velocity, ValueError<AvailableEnergy>> {
-    if approx_eq!(PrefFloat, ekin.value, 0.0, ulps=2) {
+    if approx_eq!(PrefFloat, ekin.value, 0.0, ulps=10) {
         return Ok(Velocity::new::<meter_per_second>(0.0));
     }
     if ekin < AvailableEnergy::new::<joule_per_kilogram>(0.0) {
@@ -359,7 +359,7 @@ pub fn optim_energy(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usi
                     let ekin_next = v_to_ekin(v_bin_to_mps(v_next_discretized, None, GLOBAL_V_MAX, v_res));
 
                     // discard path if vehicle would stand still across the whole section
-                    if approx_eq!(PrefFloat, ekin_curr.value, 0.0, ulps=2) && approx_eq!(PrefFloat, ekin_next.value, 0.0, ulps=2) {
+                    if approx_eq!(PrefFloat, ekin_curr.value, 0.0, ulps=10) && approx_eq!(PrefFloat, ekin_next.value, 0.0, ulps=10) {
                         continue;
                     }
 
@@ -533,7 +533,7 @@ pub fn optim_time(route: &Route, vehicle: &Vehicle, soc: Ratio, e_res: usize, v_
                     let ekin_next = v_to_ekin(v_bin_to_mps(v_next_discretized, None, GLOBAL_V_MAX, v_res));
 
                     // discard path if vehicle would stand still across the whole section
-                    if approx_eq!(PrefFloat, ekin_curr.value, 0.0, ulps=2) && approx_eq!(PrefFloat, ekin_next.value, 0.0, ulps=2) {
+                    if approx_eq!(PrefFloat, ekin_curr.value, 0.0, ulps=10) && approx_eq!(PrefFloat, ekin_next.value, 0.0, ulps=10) {
                         continue;
                     }
 
