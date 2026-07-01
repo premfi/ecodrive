@@ -3,6 +3,7 @@ use uom::si::{acceleration::meter_per_second_squared,
             energy::kilowatt_hour,
             velocity::{meter_per_second, kilometer_per_hour},
             time::second};
+use uom::fmt::DisplayStyle::Abbreviation;
 use float_cmp::approx_eq;
 
 use std::fmt::{Debug, Display};
@@ -286,9 +287,6 @@ pub fn v_bin_to_mps(bin: usize, min: Option<Velocity>, max: Velocity, num: usize
 pub fn optim_energy(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usize, v_res: usize, v_0: Option<Velocity>, v_end: Option<(Velocity, Velocity)>, e_headroom: Option<Energy>) -> Result<(Energy, DrivingSchedule), DPError> {
     let start_time_dp = std::time::Instant::now();
     println!("optim_energy: starting optimization...");
-    // TODO: check that no max_speed is larger than GLOBAL_V_MAX, or at least check that it will be clamped automatically by discretize_v
-    // maybe don't throw an error in this case, but print that it will be clamped to GLOBAL_V_MAX and do that
-    // TODO: check that no min_speed is larger than max_speed
 
     // ==== INPUT CHECKS =================================
 
@@ -439,7 +437,7 @@ pub fn optim_energy(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usi
         return Err(DPError::NoPathFound);
     }
 
-    println!("minimal_energy= {:?}", minimal_energy); // TODO: format as kWh
+    println!("minimal_energy: {:.4}", minimal_energy.into_format_args(kilowatt_hour, Abbreviation));
 
     // ==== BACKTRACKING ALONG OPTIMAL PATH ======================
 
@@ -489,15 +487,15 @@ pub fn optim_energy(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usi
 /// returns
 /// -------
 /// on success: (optimal time, optimal schedule)
-/// possibe errors: ImpossibleTask or NoPathFound
+/// possibe errors: NoPathFound
 pub fn optim_time(route: &Route, vehicle: &Vehicle, soc: Ratio, e_res: usize, v_res: usize, v_0: Option<Velocity>, v_end: Option<(Velocity, Velocity)>) -> Result<(Time, DrivingSchedule), DPError> {
     let start_time_dp = std::time::Instant::now();
     println!("optim_time: starting optimization...");
 
+    // ==== PRELIMINARIES AND DEFINITIONS =================
+
     let bat_cap = vehicle.bat_cap / vehicle.mass; // battery capacity
     let e_0: AvailableEnergy = soc * bat_cap; // initial energy content
-
-    // ==== PRELIMINARIES AND DEFINITIONS =================
 
     // set moment bounds, including rho_rot
     let (min_moment, max_moment) = (-GLOBAL_MOM_MAX * vehicle.rho_rot, GLOBAL_MOM_MAX * vehicle.rho_rot);
@@ -541,7 +539,6 @@ pub fn optim_time(route: &Route, vehicle: &Vehicle, soc: Ratio, e_res: usize, v_
     for step in 0..num_sections {
         let s = route.lengths[step];
         let route_res = route_resistances[step];
-        //TODO: add c_param, modified for each section (optional multiplier as part of route)
         let c_param = vehicle.get_c_param();
         let min_speed_discretized = std::cmp::max(min_speeds_discretized[step], min_speeds_discretized[step+1]);
         let max_speed_discretized = std::cmp::min(max_speeds_discretized[step], max_speeds_discretized[step+1]);
@@ -590,7 +587,7 @@ pub fn optim_time(route: &Route, vehicle: &Vehicle, soc: Ratio, e_res: usize, v_
 
                     // discard path if forbidden
                     if e_used_next < AvailableEnergy::new::<joule_per_kilogram>(0.0) {
-                        break; // larger velocities will also completely empty the battery // TODO: compare with optim_energy and see if velocities should be iterated in reverse there in order to be able to skip over more times directly
+                        break; // larger velocities will also completely empty the battery
                     }
 
                     // discretize and clamp energy to a maximum of bat_cap
@@ -621,7 +618,7 @@ pub fn optim_time(route: &Route, vehicle: &Vehicle, soc: Ratio, e_res: usize, v_
         return Err(DPError::NoPathFound);
     }
 
-    println!("minimal_time= {:?}", minimal_time);
+    println!("minimal_time: {:.4}", minimal_time.into_format_args(second, Abbreviation));
 
     // ==== BACKTRACKING ALONG OPTIMAL PATH ======================
 

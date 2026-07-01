@@ -23,14 +23,14 @@ use ecodrive::*;
     x check using f32 instead
     x probably remove c_param as a field from vehicle and only have get_c_param() for recalculation every time
     x add function to calculate used energy and actual time from given DrivingSchedule (not necessary as it was correct with optim_energy)
-    o add utils functions, e.g. max_s() are not used but helpful for understanding
-    o include slope into c_param to account for longer distance if slope is higher?
-    o cleanup print statements
-    o go through TODOs
+    x add utils functions, e.g. max_s() are not used but helpful for understanding
+    x include slope into c_param to account for longer distance if slope is higher? -> don't include it, would be complicated to differentiate between C and s
+    x cleanup print statements
+    x go through TODOs
     o put custom errors in their own file "error.rs"
     o try out clever splitting of route into sections such that maximum acceleration can be used
-    o add splitting function for routes or repeats/splits/etc. argument to load_route()
-    o add truck as an example vehicle in vehicle1.csv
+    x add splitting function for routes or repeats/splits/etc. argument to load_route()
+    x add truck as an example vehicle in vehicle1.csv
     x clean up plotting functions and design interface for loading schedules from file to python
     o add example in main that takes three paths: route, vehicles and returned schedule(s) and max_time, t_res, v_res that automatically calculates all of them
 */
@@ -98,13 +98,13 @@ fn main() -> Result<(), std::io::Error> {
     // println!("DP:\n{}", optimal_schedule_e);
     let _ = optimal_schedule_e.save("results/route1_result_e_inversed");
 
-    // let e_res = 2000;
-    // let (optimal_time, optimal_schedule_t) = optim_time(&route1_res2, &car1, Ratio::new::<percent>(5.0), e_res, v_res, Some(Velocity::new::<kilometer_per_hour>(38.0)), None).unwrap();
-    // let _ = optimal_schedule_t.save("results/route1_res2_result_t");
+    let e_res = 2000;
+    let (optimal_time, optimal_schedule_t) = optim_time(&route1_res2, &car1, Ratio::new::<percent>(5.0), e_res, v_res, Some(Velocity::new::<kilometer_per_hour>(38.0)), None).unwrap();
+    let _ = optimal_schedule_t.save("results/route1_res2_result_t");
 
     let vhcls = load_vehicles("../vehicle1.csv").unwrap();
-    let vhcl0 = &vhcls[0];
-    let vhcl1 = &vhcls[1];
+    let car = &vhcls[0];
+    let truck = &vhcls[1];
 
     // let route1 = load_route("routes/route1.csv").unwrap();
     // println!("route1: {:?}", route1);

@@ -34,7 +34,7 @@ impl DrivingSchedule {
         let path = if !path.ends_with(".csv") { &format!("{path}.csv") } else { path };
         println!("Saving DrivingSchedule to {}", path);
 
-        let mut wtr = csv::Writer::from_path(path)?; // TODO: create new file "path(1)" or find other way to handle this without aborting. Create necessary folder if it doesn't exist already
+        let mut wtr = csv::Writer::from_path(path)?;
 
         for (&t, &v) in self.times.iter().zip(self.speeds.iter()) {
             let row = DrivingScheduleRow {time: t, speed: v};
