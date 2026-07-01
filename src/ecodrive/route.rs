@@ -47,19 +47,12 @@ pub fn load_route(path: &str) -> Result<Route, csv::Error> {
     let mut reader = csv::ReaderBuilder::new().trim(csv::Trim::All).from_path(path)?;
     for record in reader.deserialize() {
         let section: RouteSection = record?;
-        
-        println!(
-            "s= {}, slope= {}, v_max= {}",
-            section.length_m,
-            section.slope_pct,
-            section.max_speed_kph,
-        );
 
         // convert and add entries to route
         route.lengths.push(Length::new::<meter>(section.length_m));
         route.slopes.push(Ratio::new::<percent>(section.slope_pct));
         route.min_speeds.push(Velocity::new::<kilometer_per_hour>(section.min_speed_kph));
-        route.max_speeds.push(Velocity::new::<kilometer_per_hour>(section.max_speed_kph)); // TODO: unwrap_or(GLOBAL_V_MAX)
+        route.max_speeds.push(Velocity::new::<kilometer_per_hour>(section.max_speed_kph));
         route.roll_res_factors.push(section.roll_res_factor);
     }
 

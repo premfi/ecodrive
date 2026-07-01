@@ -108,7 +108,7 @@ pub fn delta_t(s: Length, a_param: Acceleration, c_param: PerLength, ekin_0: Ava
     // positive A
     else if a_param > Acceleration::new::<meter_per_second_squared>(0.0) {
         // constant speed
-        if approx_eq!(PrefFloat, ((c_param / a_param) * ekin_0).into(), 1.0, ulps=10) {// TODO: CHECK EPSILON AND ULPS GOOD VALUES
+        if approx_eq!(PrefFloat, ((c_param / a_param) * ekin_0).into(), 1.0, ulps=10) {
             // println!("case 2.1");
             return s / (2.0 * ekin_0).sqrt();
         } 
@@ -116,7 +116,7 @@ pub fn delta_t(s: Length, a_param: Acceleration, c_param: PerLength, ekin_0: Ava
         else {
             // approximation for numerical stability
             if PrefFloat::from(s * c_param) > 12.0 {
-                println!("approximation used!");
+                // println!("approximation used");
                 let max_stable_s = 12.0 / c_param;
                 let y_axis_offset = delta_t(max_stable_s, a_param, c_param, ekin_0);
                 let m = c_param / (2.0 * a_param * c_param).sqrt();
@@ -266,8 +266,24 @@ pub fn v_bin_to_mps(bin: usize, min: Option<Velocity>, max: Velocity, num: usize
     stepsize * (bin as PrefFloat) + min
 }
 
-/// Optimizes energy use for a given vehicle on a given route, given a time budget.
-pub fn optim_energy(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usize, v_res: usize, v_0: Option<Velocity>, v_end: Option<(Velocity, Velocity)>, e_headroom: Option<Energy>) -> Result<(AvailableEnergy, DrivingSchedule), DPError> {
+/// Optimizes energy use for a vehicle on a route, given a time budget.
+/// 
+/// parameters
+/// ----------
+/// route: route on which the optimization takes place
+/// vehicle: vehicle traversing the route
+/// max_time: maximum time budget. Result will either lie within this budget or abort
+/// t_res: resolution of the time discretization
+/// v_res: resolution of the velocity discretization
+/// v_0 (optional): initial velocity, defaults to 0.0mps if None
+/// v_end (optional): range for the end velocity, no constraints imposed if None
+/// e_headroom (optional): maximum energy that can be stored in the battery on top of the initial charge, no constraint imposed if None
+/// 
+/// returns
+/// -------
+/// on success: (optimal energy, optimal schedule)
+/// possible errors: ImpossibleTask or NoPathFound
+pub fn optim_energy(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usize, v_res: usize, v_0: Option<Velocity>, v_end: Option<(Velocity, Velocity)>, e_headroom: Option<Energy>) -> Result<(Energy, DrivingSchedule), DPError> {
     let start_time_dp = std::time::Instant::now();
     println!("optim_energy: starting optimization...");
     // TODO: check that no max_speed is larger than GLOBAL_V_MAX, or at least check that it will be clamped automatically by discretize_v
@@ -408,13 +424,13 @@ pub fn optim_energy(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usi
     // ==== RETRIEVAL OF BEST END STATE ==========================
 
     let (_, v_opt_end, t_opt_end) = mat_e_used.select(Axis(0), &[mat_e_used.shape()[0] - 1]).argmin().expect("even if no path was found, argmin should yield a value");
-    let minimal_energy = mat_e_used[[mat_e_used.shape()[0] - 1, v_opt_end, t_opt_end]];
+    let minimal_energy = mat_e_used[[mat_e_used.shape()[0] - 1, v_opt_end, t_opt_end]] * vehicle.mass;
     
-    if !(minimal_energy < AvailableEnergy::new::<joule_per_kilogram>(PrefFloat::INFINITY)) {
+    if !(minimal_energy < Energy::new::<kilowatt_hour>(PrefFloat::INFINITY)) {
         return Err(DPError::NoPathFound);
     }
-    println!("\nv_opt_end={:?}, t_opt_end={:?}", v_opt_end, t_opt_end);
-    println!("minimal_energy= {:?}", minimal_energy);// * vehicle.mass); // TODO: calculate as kWh using vehicle.mass and print/return that instead
+
+    println!("minimal_energy= {:?}", minimal_energy); // TODO: format as kWh
 
     // ==== BACKTRACKING ALONG OPTIMAL PATH ======================
 
@@ -428,9 +444,6 @@ pub fn optim_energy(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usi
     let mut v_opt_curr = v_opt_end;
     let mut t_opt_curr = t_opt_end;
 
-    println!("check if this is the minimal energy: {:?}", mat_e_used[[num_sections, v_opt_curr, t_opt_curr]]); // TODO: write something more professional or remove completely
-    println!("parent of best end state: {:?}", mat_parents[[num_sections, v_opt_curr, t_opt_curr]]);
-
     // backtrack along optimal path, starting at the end
     for step in (0..=num_sections).rev() {
         // save v and t of current step to optimal schedule
@@ -439,7 +452,6 @@ pub fn optim_energy(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usi
 
         // get parent index of current state
         parent_flat = mat_parents[[step, v_opt_curr, t_opt_curr]];
-        println!("parent_flat = {}", parent_flat);
 
         // retrieve v and t state from parent index
         v_opt_curr = parent_flat / t_res; // integer division, truncating decimal part
@@ -453,7 +465,22 @@ pub fn optim_energy(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usi
 }
 
 
-/// Optimizes used time for a given vehicle on a given route, given an energy budget.
+/// Optimizes used time for a vehicle on a route, given an energy budget.
+/// 
+/// parameters
+/// ----------
+/// route: route on which the optimization takes place
+/// vehicle: vehicle traversing the route
+/// soc: state of charge of the battery at the beginning of the route
+/// e_res: resolution of the energy discretization
+/// v_res: resolution of the velocity discretization
+/// v_0 (optional): initial velocity, defaults to 0.0mps if None
+/// v_end (optional): range for the end velocity, no constraints imposed if None^
+/// 
+/// returns
+/// -------
+/// on success: (optimal time, optimal schedule)
+/// possibe errors: ImpossibleTask or NoPathFound
 pub fn optim_time(route: &Route, vehicle: &Vehicle, soc: Ratio, e_res: usize, v_res: usize, v_0: Option<Velocity>, v_end: Option<(Velocity, Velocity)>) -> Result<(Time, DrivingSchedule), DPError> {
     let start_time_dp = std::time::Instant::now();
     println!("optim_time: starting optimization...");
@@ -585,7 +612,6 @@ pub fn optim_time(route: &Route, vehicle: &Vehicle, soc: Ratio, e_res: usize, v_
         return Err(DPError::NoPathFound);
     }
 
-    println!("\nv_opt_end={:?}, e_opt_end={:?}", v_opt_end, e_opt_end);
     println!("minimal_time= {:?}", minimal_time);
 
     // ==== BACKTRACKING ALONG OPTIMAL PATH ======================
@@ -608,7 +634,6 @@ pub fn optim_time(route: &Route, vehicle: &Vehicle, soc: Ratio, e_res: usize, v_
 
         // get parent index of current state
         parent_flat = mat_parents[[step, v_opt_curr, e_opt_curr]];
-        println!("parent_flat = {}", parent_flat);
 
         // retrieve v and e state from parent index
         v_opt_curr = parent_flat / e_res; // integer division, truncating decimal part

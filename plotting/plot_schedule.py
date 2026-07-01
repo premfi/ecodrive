@@ -182,6 +182,8 @@ def create_plot(save_to, lengths, As, moments, C_param, C_r, v_maxs=None, route_
 
     plt.savefig(save_to)
 
+    print("schedule successfully saved to", save_to)
+
 
 def plot_schedule(schedule_path, route_path, vehicle_path, vehicle_num=0, save_to=None):
     """Load data, prepare arguments and call create_plot()"""
@@ -220,18 +222,18 @@ def plot_schedule(schedule_path, route_path, vehicle_path, vehicle_num=0, save_t
         pass
 
     # create and save plot
-    create_plot(save_to, lengths, A_retrieved, moments, C_param, C_r, max_speeds, ekin_0=e_kins[0])
+    create_plot(save_to, lengths, A_retrieved, moments, C_param, C_r, max_speeds, route_res, ekin_0=e_kins[0])
 
 
 if __name__ == "__main__":
     print("executing plot_schedule.py")
 
     # either change these to the desired paths or supply them as command line arguments when calling plot_route.py
-    default_schedule = "results/route3_res8_result.csv"
-    default_route = "routes/route3_res8.csv"
-    default_vehicle = "../vehicles.csv"
+    default_schedule = "results/route2_result_t_2pct.csv"
+    default_route = "routes/route2.csv"
+    default_vehicle = "../vehicle1.csv"
     default_vehicle_row = 0
-    default_destination = "figures/route3_res8_result.png"
+    default_destination = None
 
     # without arguments, use default values
     if len(sys.argv) <= 1:
