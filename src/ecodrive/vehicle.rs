@@ -35,7 +35,6 @@ pub fn load_vehicles(path: &str) -> Result<Vec<Vehicle>, csv::Error> {
 
     for record in reader.deserialize() {
         let vehicle: Vehicle = record?;
-        // vehicle.update_c_param();
         vehicles.push(vehicle);
     }
 
@@ -81,7 +80,6 @@ impl Vehicle {
 
     /// Calculates C parameter (mass-normalized air resistance prefactor) [1/m]
     pub fn get_c_param(&self) -> PerLength /* [1/m] */ {
-        // self.c_param.expect("c_param not set! Should have been calculated automatically.")
         RHO_AIR * self.c_w * self.frontal_area / self.mass
     }
 }

@@ -38,7 +38,6 @@ impl DrivingSchedule {
 
         for (&t, &v) in self.times.iter().zip(self.speeds.iter()) {
             let row = DrivingScheduleRow {time: t, speed: v};
-            // println!("t={:?}, v={:?}", t, v);
             wtr.serialize(row)?;
         }
 

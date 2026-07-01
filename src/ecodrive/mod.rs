@@ -402,11 +402,6 @@ pub fn optim_energy(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usi
                     // add time for the current section to time used so far
                     let time_used_next = delta_t(s, a_param, c_param, ekin_curr) + time_bin_to_seconds(state_t, None, max_time, t_res);
 
-                    // if !(time_used_next >= Time::new::<second>(0.0)) {
-                    //     println!("delta_t: {:?}", delta_t(s, a_param, c_param, ekin_curr));
-                    //     println!("arguments: {:?}, {:?}, {:?}, {:?}", s, a_param, c_param, ekin_curr);
-                    // } // TODO: remove this debug part
-
                     // discard path if forbidden
                     if time_used_next > max_time {
                         // continue; // try again with next-larger velocity
