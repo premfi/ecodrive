@@ -194,11 +194,11 @@ def plot_schedule(schedule_path, route_path, vehicle_path, vehicle_num=0, save_t
     schedule = load_schedule(schedule_path)
 
     # prepare arguments for create_plot()
-    e_kins = (v_to_ekin(schedule["speed_mps"]))
-    route_res = f_route_res(slopes, vehicle["roll_res_coeff"])
-
     C_param = calculate_C(vehicle)
     C_r = vehicle["roll_res_coeff"]
+
+    e_kins = (v_to_ekin(schedule["speed_mps"]))
+    route_res = f_route_res(slopes, C_r)
 
     A_retrieved = retrieve_A(lengths, e_kins[:-1], e_kins[1:], C_param)
     moments = A_to_moment(A_retrieved, route_res, vehicle["rho_rot"])
@@ -229,8 +229,8 @@ if __name__ == "__main__":
     print("executing plot_schedule.py")
 
     # either change these to the desired paths or supply them as command line arguments when calling plot_route.py
-    default_schedule = "results/route1_res2_result_t.csv"
-    default_route = "routes/route1_res2.csv"
+    default_schedule = "results/route1_result_e_inversed.csv"
+    default_route = "routes/route1.csv"
     default_vehicle = "../vehicle1.csv"
     default_vehicle_row = 0
     default_destination = None

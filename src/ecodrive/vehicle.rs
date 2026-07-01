@@ -59,8 +59,8 @@ pub struct Vehicle {
 impl Vehicle {
     /// Creates a new vehicle.
     pub fn new(roll_res_coeff: PrefFloat,   // rolling resistance coefficient
-                rec_eff: PrefFloat,     // regenerative braking efficiency
                 rho_rot: PrefFloat,     // factor for equivalent mass of rotating parts
+                rec_eff: PrefFloat,     // regenerative braking efficiency
                 bat_cap: Energy,        // battery capacity [kWh]
                 mass: Mass,             // vehicle mass [kg]
                 frontal_area: Area,     // frontal area [m^2]
