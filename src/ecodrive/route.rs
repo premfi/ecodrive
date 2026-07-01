@@ -3,6 +3,7 @@ use crate::ecodrive::config::uom_si_preffloat::{Length, Ratio, Velocity};
 
 use uom::si::{length::meter, ratio::percent, velocity::kilometer_per_hour};
 
+
 pub struct Route {
     pub lengths: Vec<Length>,
     pub slopes: Vec<Ratio>,
@@ -11,7 +12,9 @@ pub struct Route {
     pub roll_res_factors: Vec<PrefFloat>,
 }
 
+
 fn roll_res_factor_default() -> PrefFloat {1.0}
+
 
 use serde::Deserialize;
 #[derive(Debug, Deserialize)]
@@ -31,6 +34,7 @@ struct RouteSection {
     #[serde(default = "roll_res_factor_default")]
     pub roll_res_factor: PrefFloat,
 }
+
 
 pub fn load_route(path: &str) -> Result<Route, csv::Error> {
     println!("Loading route from {}", path);

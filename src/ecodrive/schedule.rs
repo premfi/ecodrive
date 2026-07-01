@@ -5,15 +5,18 @@ use crate::config::PrefFloat;
 
 use serde::{Serialize, Serializer};
 
+
 fn serialize_time_to_s<S>(time: &Time, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
     let seconds = time.get::<second>();
     serializer.serialize_f64(seconds as f64)
 }
 
+
 fn serialize_velocity_to_kph<S>(velocity: &Velocity, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
     let kilometers_per_hour = velocity.get::<kilometer_per_hour>();
     serializer.serialize_f64(kilometers_per_hour as f64)
 }
+
 
 #[derive(Serialize)]
 struct DrivingScheduleRow {
@@ -22,6 +25,7 @@ struct DrivingScheduleRow {
     #[serde(serialize_with="serialize_velocity_to_kph", rename="speed [km/h]")]
     speed: Velocity
 }
+
 
 #[derive(Debug)]
 pub struct DrivingSchedule {

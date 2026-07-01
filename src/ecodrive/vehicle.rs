@@ -6,26 +6,26 @@ use uom::si::{mass::kilogram, area::square_meter, energy::kilowatt_hour};
 use crate::ecodrive::constants::{RHO_AIR};
 use crate::ecodrive::PerLength;
 
-/// Struct containing all relevant data of a single vehicle.
-/// 
-/// C parameter is calculated from mass, frontal_area and c_w.
-
 use serde::{Deserialize, Deserializer};
+
 
 fn deserialize_float_to_kg<'de, D>(d: D) -> Result<Mass, D::Error> where D: Deserializer<'de> {
     let kilograms = PrefFloat::deserialize(d)?;
     Ok(Mass::new::<kilogram>(kilograms))
 }
 
+
 fn deserialize_float_to_sqm<'de, D>(d: D) -> Result<Area, D::Error> where D: Deserializer<'de> {
     let square_meters = PrefFloat::deserialize(d)?;
     Ok(Area::new::<square_meter>(square_meters))
 }
 
+
 fn deserialize_float_to_kWh<'de, D>(d: D) -> Result<Energy, D::Error> where D: Deserializer<'de> {
     let kilowatt_hours = PrefFloat::deserialize(d)?;
     Ok(Energy::new::<kilowatt_hour>(kilowatt_hours))
 }
+
 
 pub fn load_vehicles(path: &str) -> Result<Vec<Vehicle>, csv::Error> {
     println!("Loading vehicles from {}", path);
@@ -41,6 +41,10 @@ pub fn load_vehicles(path: &str) -> Result<Vec<Vehicle>, csv::Error> {
     Ok(vehicles)
 }
 
+
+/// Struct containing all relevant data of a single vehicle.
+/// 
+/// C parameter is calculated from mass, frontal_area and c_w.
 #[derive(Clone, Debug, Deserialize)]
 pub struct Vehicle {
     pub roll_res_coeff: PrefFloat,  // rolling resistance coefficient
@@ -77,6 +81,7 @@ impl Vehicle {
 
         vhl
     }
+
 
     /// Calculates C parameter (mass-normalized air resistance prefactor) [1/m]
     pub fn get_c_param(&self) -> PerLength /* [1/m] */ {

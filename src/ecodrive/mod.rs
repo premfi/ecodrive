@@ -40,6 +40,7 @@ fn e_kin(s: Length, a_param: Acceleration, c_param: PerLength, ekin_0: Available
     (a_param / c_param) + (ekin_0 - (a_param / c_param)) * (-c_param * s).exp()
 }
 
+
 /// Returns specific used energy when applying moment `mom` on length `s`.
 pub fn energy_used(s: Length, mom: Acceleration /* [N/kg] */, rec_eff: PrefFloat) -> AvailableEnergy /* [J/kg] */ {
     if mom >= Acceleration::new::<meter_per_second_squared>(0.0) {
@@ -49,16 +50,19 @@ pub fn energy_used(s: Length, mom: Acceleration /* [N/kg] */, rec_eff: PrefFloat
     }
 }
 
+
 /// Returns the specific route resistance, consisting of slope and rolling resistance.
 pub fn route_res(slope: Ratio, roll_res_coeff: PrefFloat) -> Acceleration /* [N/kg] */ {
     GRAVITY_OF_EARTH * (slope.get::<uom::si::ratio::ratio>() + roll_res_coeff)
 }
+
 
 /// Calculates A parameter necessary to reach `ekin_s` after length `s` when starting with `ekin_0`.
 pub fn retrieve_a_param(s: Length, ekin_0: AvailableEnergy, ekin_s: AvailableEnergy, c_param: PerLength) -> Acceleration /* [N/kg] */ {
     let a_param = c_param * (ekin_s - ekin_0 * PrefFloat::from((-c_param * s).exp())) / (1.0 - PrefFloat::from((-c_param * s).exp()));
     a_param
 }
+
 
 /// Calculates the time needed for a section.
 pub fn delta_t(s: Length, a_param: Acceleration, c_param: PerLength, ekin_0: AvailableEnergy) -> Time {
@@ -130,6 +134,7 @@ pub fn delta_t(s: Length, a_param: Acceleration, c_param: PerLength, ekin_0: Ava
         
 }
 
+
 /// Converts v into corresponding specific kinetic energy.
 pub fn v_to_ekin(v: Velocity) -> AvailableEnergy {
     v * v / 2.0
@@ -145,7 +150,6 @@ pub fn ekin_to_v(ekin: AvailableEnergy) -> Result<Velocity, ValueError<Available
     Ok((2.0 * ekin).sqrt())
 }
 
-// *discretize and undiscretice t and v (4 functions in total)*
 
 /// Assings `t` to its corresponding bin from [0, `num-1`]. Bins are linearly spaced between `min` and `max`.
 /// Positive values out of range are clamped into the edge bins. Panics for negative `t` inputs.
@@ -170,6 +174,7 @@ pub fn discretize_time(t: Time, min: Option<Time>, max: Time, num: usize) -> usi
     std::cmp::min(bin, num - 1)
 }
 
+
 /// Translates time bin to corresponding Time value.
 pub fn time_bin_to_seconds(bin: usize, min: Option<Time>, max: Time, num: usize) -> Time {
     let min = min.unwrap_or(Time::new::<second>(0.0));
@@ -177,6 +182,7 @@ pub fn time_bin_to_seconds(bin: usize, min: Option<Time>, max: Time, num: usize)
 
     stepsize * (bin as PrefFloat) + min
 }
+
 
 /// Assings `e` to its corresponding bin from [0, `num-1`]. Bins are linearly spaced between `min` and `max`.
 /// Positive values out of range are clamped into the edge bins. Panics for negative `e` inputs.
@@ -200,6 +206,7 @@ fn discretize_energy(e: AvailableEnergy, min: Option<AvailableEnergy>, max: Avai
     std::cmp::min(bin, num - 1)
 }
 
+
 /// Translates energy bin to corresponding AvailableEnergy value.
 fn e_bin_to_J_p_kg(bin: usize, min: Option<AvailableEnergy>, max: AvailableEnergy, num: usize) -> AvailableEnergy {
     let min = min.unwrap_or(AvailableEnergy::new::<joule_per_kilogram>(0.0));
@@ -207,6 +214,7 @@ fn e_bin_to_J_p_kg(bin: usize, min: Option<AvailableEnergy>, max: AvailableEnerg
 
     stepsize * (bin as PrefFloat) + min
 }
+
 
 /// Assigns `v` to its corresponding bin from [0, `num-1`]. Bins are linearly spaced between `min` and `max`.
 /// Positive values out of range are clamped into the edge bins. Panics for negative `v` inputs.
@@ -231,6 +239,7 @@ pub fn discretize_v(v: Velocity, min: Option<Velocity>, max: Velocity, num: usiz
     std::cmp::min(bin, num - 1)
 }
 
+
 /// Translates speed bin to corresponding Velocity.
 pub fn v_bin_to_mps(bin: usize, min: Option<Velocity>, max: Velocity, num: usize) -> Velocity {
     let min = min.unwrap_or(Velocity::new::<meter_per_second>(0.0));
@@ -238,6 +247,7 @@ pub fn v_bin_to_mps(bin: usize, min: Option<Velocity>, max: Velocity, num: usize
 
     stepsize * (bin as PrefFloat) + min
 }
+
 
 /// Optimizes energy use for a vehicle on a route, given a time budget.
 /// 

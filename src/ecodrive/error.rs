@@ -1,5 +1,6 @@
 use std::fmt::{Debug, Display};
 
+
 #[derive(Debug)]
 pub enum DPError {
     ImpossibleTask,
@@ -16,6 +17,7 @@ impl Display for DPError {
         }
     }
 }
+
 
 #[derive(Debug)]
 pub enum ValueError<T> {
