@@ -89,21 +89,26 @@ fn main() -> Result<(), std::io::Error> {
     // println!("optimal_schedule_t:\n{}", optimal_schedule_t);
     // let _ = optimal_schedule_t.save("results/route1_result_t");
 
-    // example for optimizing the whole list of vehicles on a route
+    // // example for optimizing a list of vehicles on a route
 
-    // if different optimization parameters are wanted for different vehicles, store them in a vec
-    let socs = vec![Ratio::new::<percent>(5.0),
-               Ratio::new::<percent>(7.0)];
+    // // if different optimization parameters are wanted for different vehicles, store them in a vec
+    // let socs = vec![Ratio::new::<percent>(5.0),
+    //            Ratio::new::<percent>(7.0)];
 
-    for (i, vhcl) in vhcls.iter().enumerate() {
-        println!("{}: {:?}", i, vhcl);
-        let soc   = socs[i]; // retrieve parameter for current vehicle
-        let e_res = 8000;
-        let v_res = 201;
-        let v_0   = Velocity::new::<kilometer_per_hour>(38.0);
-        let (optimal_time, optimal_schedule_t) = optim_time(&route1, &vhcl, soc, e_res, v_res, Some(v_0), None).unwrap();
-        optimal_schedule_t.save(&format!("results/route1_vhcl{}", i));
-    }
+    // for (i, vhcl) in vhcls.iter().enumerate() {
+    //     println!("{}: {:?}", i, vhcl);
+    //     let soc   = socs[i]; // retrieve parameter for current vehicle
+    //     let e_res = 8000;
+    //     let v_res = 201;
+    //     let v_0   = Velocity::new::<kilometer_per_hour>(38.0);
+    //     let (optimal_time, optimal_schedule_t) = optim_time(&route1, &vhcl, soc, e_res, v_res, Some(v_0), None).unwrap();
+    //     optimal_schedule_t.save(&format!("results/route1_vhcl{}", i));
+    // }
+
+    let route0 = load_route("routes/route0.csv").unwrap();
+    println!("{:?}", route0);
+    let route0_res2 = route0.partition(3);
+    println!("{:?}", route0_res2);
 
     Ok(())
 }
