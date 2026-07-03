@@ -28,12 +28,13 @@ use ecodrive::*;
     x cleanup print statements
     x go through TODOs
     x put custom errors in their own file "error.rs"
-    o try out clever splitting of route into sections such that maximum acceleration can be used
-    o add calculation of realistic schedule for comparison (with maximum moments, but capped max velocity)
     x add splitting function for routes or repeats/splits/etc. argument to load_route()
     x add truck as an example vehicle in vehicle1.csv
     x clean up plotting functions and design interface for loading schedules from file to python
-    o add example in main that takes three paths: route, vehicles and returned schedule(s) and max_time, t_res, v_res that automatically calculates all of them
+    x add example in main that takes three paths: route, vehicles and returned schedule(s) and max_time, t_res, v_res that automatically calculates all of them
+    o try out clever splitting of route into sections such that maximum acceleration can be used
+    o add calculation of realistic schedule for comparison (with maximum moments, but capped max velocity)
+    o add possibility for optim_time() to return ImpossibleTask (or a more suitable one), if v0 is higher (or lower) than allowed
 */
 
 use config::uom_si_preffloat::{Mass, Area, Length, Ratio, Velocity, Time, AvailableEnergy, Energy};
@@ -67,48 +68,48 @@ fn main() -> Result<(), std::io::Error> {
     
     // load route
     let route1 = load_route("routes/route1.csv").unwrap();
-    let route1_res2 = load_route("routes/route1_res2.csv").unwrap();
+    let route1_res16 = route1.partition(16);
 
-    // // set optimization parameters
-    // let max_time = Time::new::<second>(1175.0);
-    // let time_res = 2000;
-    // let v_res    = 201;
-    // let v_0      = Velocity::new::<kilometer_per_hour>(38.0);
+    // ==== EXAMPLES FOR OPTIMIZING SINGLE VEHICLE ======================
 
-    // // run energy optimization with given time budget
-    // let (optimal_energy, optimal_schedule_e) = optim_energy(&route1, &car1, max_time, time_res, v_res, Some(v_0), None, None).unwrap();
-    // println!("optimal_schedule_e:\n{}", optimal_schedule_e);
-    // let _ = optimal_schedule_e.save("results/route1_result_e_inversed");
+    // set optimization parameters
+    let max_time = Time::new::<second>(1175.0);
+    let time_res = 2000;
+    let v_res    = 201;
+    let v_0      = Velocity::new::<kilometer_per_hour>(0.0);
 
-    // // set optimization parameters
-    // let e_res = 8000;
-    // let soc   = Ratio::new::<percent>(5.0);
+    // run energy optimization with given time budget
+    let (optimal_energy, optimal_schedule_e) = optim_energy(&route1, &car1, max_time, time_res, v_res, Some(v_0), None, None).unwrap();
+    println!("optimal_schedule_e:\n{}", optimal_schedule_e);
+    let _ = optimal_schedule_e.save("results/route1_result_e_inversed");
 
-    // // run time optimization with given energy budget
-    // let (optimal_time, optimal_schedule_t) = optim_time(&route1, &car1, soc, e_res, v_res, Some(v_0), None).unwrap();
-    // println!("optimal_schedule_t:\n{}", optimal_schedule_t);
-    // let _ = optimal_schedule_t.save("results/route1_result_t");
+    // set optimization parameters
+    let e_res = 8000;
+    let soc   = Ratio::new::<percent>(5.0);
 
-    // // example for optimizing a list of vehicles on a route
+    // run time optimization with given energy budget
+    let (optimal_time, optimal_schedule_t) = optim_time(&route1, &car1, soc, e_res, v_res, Some(v_0), None).unwrap();
+    println!("optimal_schedule_t:\n{}", optimal_schedule_t);
+    let _ = optimal_schedule_t.save("results/route1_result_t");
 
-    // // if different optimization parameters are wanted for different vehicles, store them in a vec
-    // let socs = vec![Ratio::new::<percent>(5.0),
-    //            Ratio::new::<percent>(7.0)];
+    // ==== EXAMPLE FOR OPTIMIZING A WHOLE LIST OF VEHICLES ==============
 
-    // for (i, vhcl) in vhcls.iter().enumerate() {
-    //     println!("{}: {:?}", i, vhcl);
-    //     let soc   = socs[i]; // retrieve parameter for current vehicle
-    //     let e_res = 8000;
-    //     let v_res = 201;
-    //     let v_0   = Velocity::new::<kilometer_per_hour>(38.0);
-    //     let (optimal_time, optimal_schedule_t) = optim_time(&route1, &vhcl, soc, e_res, v_res, Some(v_0), None).unwrap();
-    //     optimal_schedule_t.save(&format!("results/route1_vhcl{}", i));
-    // }
+    // if different optimization parameters are wanted for different vehicles, store them in a vec
+    let socs = vec![Ratio::new::<percent>(5.0),
+               Ratio::new::<percent>(7.0)];
 
-    let route0 = load_route("routes/route0.csv").unwrap();
-    println!("{:?}", route0);
-    let route0_res2 = route0.partition(3);
-    println!("{:?}", route0_res2);
+    for (i, vhcl) in vhcls.iter().enumerate() {
+        println!("{}: {:?}", i, vhcl);
+        let soc   = socs[i]; // retrieve parameter for current vehicle
+        let e_res = 12000;
+        let v_res = 201;
+        let v_0   = Velocity::new::<kilometer_per_hour>(0.0);
+        match optim_time(&route1_res16, &vhcl, soc, e_res, v_res, Some(v_0), None) {
+            Ok((optimal_time, optimal_schedule_t)) => optimal_schedule_t.save(&format!("results/route1_res16_vhcl{}", i))?,
+            Err(e) => println!("optimization number {} failed with: {:?}", i, e),
+        }
+
+    }
 
     Ok(())
 }
