@@ -1,3 +1,5 @@
+/// definition of DrivingSchedule struct and related functions for loading and displaying
+
 use crate::ecodrive::config::uom_si_preffloat::{Velocity, Time};
 use uom::si::{velocity::{kilometer_per_hour, meter_per_second},
             time::second};

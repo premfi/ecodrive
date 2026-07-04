@@ -1,3 +1,5 @@
+/// definition of custom errors
+
 use std::fmt::{Debug, Display};
 
 

@@ -1,3 +1,5 @@
+/// definition of Route struct and related functions for loading and modifying
+
 use crate::ecodrive::config::PrefFloat;
 use crate::ecodrive::config::uom_si_preffloat::{Length, Ratio, Velocity};
 

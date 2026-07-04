@@ -97,7 +97,7 @@ def ekin_to_v(ekin):
 ekin_to_v_vectorized = np.vectorize(ekin_to_v)
 
 
-def create_plot(save_to, lengths, As, moments, C_param, C_r, v_maxs=None, route_res=None, num_x=10000, ekin_0=0, cmap_moment_name="RdBu_r", cmap_route_res_name="PuOr_r", only_opt_path=False):
+def create_plot(save_to, lengths, As, moments, C_param, C_r, v_maxs=None, route_res=None, num_x=10000, ekin_0=0, cmap_moment_name="RdBu_r", cmap_route_res_name="PuOr_r", no_coloring=False):
     """Plot the velocity and moment of a given path over the route.
     y-axis: velocity (solid) and speed limit (dotted)
     colors above the curve: route resistance (slope + rolling resistance)
@@ -114,6 +114,7 @@ def create_plot(save_to, lengths, As, moments, C_param, C_r, v_maxs=None, route_
 
         if num <= 1: # then there would be 0 new x-values
             nums[-1] = 0
+            ekin_0 = e_kin(s, A, C_param, ekin_0)
             continue
         
         x = np.linspace(0, s, num+1)[1:]
@@ -133,7 +134,7 @@ def create_plot(save_to, lengths, As, moments, C_param, C_r, v_maxs=None, route_
         x_tot = np.concatenate((x_tot, x))
         y_tot = np.concatenate((y_tot, y))
     
-    if not only_opt_path:
+    if not no_coloring:
         fig, ax = plt.subplots(layout="constrained", figsize=(9, 5))
         cmap_moment = plt.get_cmap(cmap_moment_name)
         cmap_route_res = plt.get_cmap(cmap_route_res_name)
@@ -172,8 +173,8 @@ def create_plot(save_to, lengths, As, moments, C_param, C_r, v_maxs=None, route_
         fig.colorbar(ScalarMappable(norm=matplotlib.colors.Normalize(min_route_res, max_route_res), cmap=cmap_route_res_name), ax=ax, pad=0.03, label="route resistance [m/$\\mathrm{s^2}$]")
 
     # plot optimal path
-    alpha_opt = 0.2 if only_opt_path else 1.0
-    label = None if only_opt_path else "optimal schedule"
+    alpha_opt = 0.2 if no_coloring else 1.0
+    label = None if no_coloring else "optimal schedule"
     plt.plot(x_tot, y_tot, "black", label=label, alpha=alpha_opt)
 
     plt.legend(loc="lower center")
@@ -229,7 +230,7 @@ if __name__ == "__main__":
     print("executing plot_schedule.py")
 
     # either change these to the desired paths or supply them as command line arguments when calling plot_route.py
-    default_schedule = "results/route1_res16_vhcl0.csv"
+    default_schedule = "results/route1_res16_result_t_80pct.csv"
     default_route = "routes/route1_res16.csv"
     default_vehicle = "../vehicle1.csv"
     default_vehicle_row = 0

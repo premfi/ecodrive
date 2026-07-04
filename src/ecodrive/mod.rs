@@ -1,3 +1,5 @@
+/// central module file, including optimization and closely related functions
+
 use uom::si::{acceleration::meter_per_second_squared,
             available_energy::joule_per_kilogram,
             energy::kilowatt_hour,

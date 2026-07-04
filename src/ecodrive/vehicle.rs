@@ -1,3 +1,5 @@
+/// definition of Vehicle struct and related functions for loading and manual creation
+
 use crate::ecodrive::config::PrefFloat;
 use crate::ecodrive::config::uom_si_preffloat::{Mass, Area, Energy};
 
