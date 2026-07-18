@@ -329,7 +329,7 @@ pub fn optim_energy(route: &Route, vehicle: &Vehicle, max_time: Time, t_res: usi
     for step in 0..num_sections {
         let s = route.lengths[step];
         let route_res = route_resistances[step];
-        let c_param = vehicle.get_c_param();
+        let c_param = vehicle.get_c_param() * (route.slopes[step].get::<uom::si::ratio::ratio>().powi(2) + 1.0).sqrt(); // = c_param / cos(arctan(slope))
         let min_speed_discretized = std::cmp::max(min_speeds_discretized[step], min_speeds_discretized[step+1]);
         let max_speed_discretized = std::cmp::min(max_speeds_discretized[step], max_speeds_discretized[step+1]);
 
@@ -523,7 +523,7 @@ pub fn optim_time(route: &Route, vehicle: &Vehicle, soc: Ratio, e_res: usize, v_
     for step in 0..num_sections {
         let s = route.lengths[step];
         let route_res = route_resistances[step];
-        let c_param = vehicle.get_c_param();
+        let c_param = vehicle.get_c_param() * (route.slopes[step].get::<uom::si::ratio::ratio>().powi(2) + 1.0).sqrt(); // = c_param / cos(arctan(slope))
         let min_speed_discretized = std::cmp::max(min_speeds_discretized[step], min_speeds_discretized[step+1]);
         let max_speed_discretized = std::cmp::min(max_speeds_discretized[step], max_speeds_discretized[step+1]);
 
