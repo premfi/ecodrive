@@ -230,8 +230,8 @@ if __name__ == "__main__":
     print("executing plot_schedule.py")
 
     # either change these to the desired paths or supply them as command line arguments when calling plot_route.py
-    default_schedule = "results/route1_res16_result_t_80pct.csv"
-    default_route = "routes/route1_res16.csv"
+    default_schedule = "results/route1_result_t_80pct.csv"
+    default_route = "routes/route1.csv"
     default_vehicle = "../vehicle1.csv"
     default_vehicle_row = 0
     default_destination = None

@@ -74,7 +74,7 @@ if __name__ == "__main__":
     print("executing plot_route.py")
 
     # either change these to the desired paths or supply them as command line arguments when calling plot_route.py
-    default_route = "routes/route2.csv"
+    default_route = "routes/route1.csv"
     default_destination = None
 
     if len(sys.argv) <= 1:
